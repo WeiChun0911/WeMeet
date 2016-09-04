@@ -24,8 +24,10 @@ let configuration = {
 let roomURL = document.getElementById('url');
 
 //取得影片區的HTML元素
-let video = document.querySelector('video');
-var remoteVideo = document.getElementById('remoteVideo');
+let localStream;
+let remoteStream;
+let localVideo = document.getElementById('localVideo');
+let remoteVideo = document.getElementById('remoteVideo');
 
 let photo = document.getElementById('photo');
 let photoContext = photo.getContext('2d');
@@ -42,6 +44,12 @@ let msgButton = document.querySelector('button#msgButton');
 let photoContextW;
 let photoContextH;
 
+
+let peerConn;
+let photoChannel;
+let msgChannel;
+
+
 // Attach event handlers
 //在按鈕上，附加事件處理函數
 snapBtn.addEventListener('click', snapPhoto);
@@ -51,7 +59,8 @@ msgButton.addEventListener('click', sendText);
 
 // Create a random room if not already present in the URL.
 //創建房間，如果沒有顯示在URL裡面
-let isInitiator;
+let isInitiator = false;
+let isStarted = false;
 let room = window.location.hash.substring(1);
 if (!room) {
     room = window.location.hash = randomToken();
@@ -81,7 +90,6 @@ socket.on('created', function(room, clientID) {
     console.log('Created room', room, '- my client ID is', clientID);
     isInitiator = true;
     ID = clientID;
-    grabWebCamVideo();
 });
 
 //加入房間訊息
@@ -89,13 +97,10 @@ socket.on('joined', function(room, clientID) {
     console.log('This peer has joined room', room, 'with client ID', clientID);
     isInitiator = false;
     ID = clientID;
-    createPeerConnection(isInitiator, configuration);
-    grabWebCamVideo();
 });
 
 //房間滿人訊息
 socket.on('full', function(room) {
-    alert('Room ' + room + ' is full. We will create a new room for you.');
     window.location.hash = '';
     window.location.reload();
 });
@@ -103,8 +108,6 @@ socket.on('full', function(room) {
 //成功加入房間(目前最多為兩人)訊息
 socket.on('ready', function() {
     console.log('Socket is ready');
-    //建立連線
-    createPeerConnection(isInitiator, configuration);
 });
 
 //列印伺服器訊訊息
@@ -148,62 +151,75 @@ function updateRoomURL(ipaddr) {
 /****************************************************************************
  * User media (webcam)
  ****************************************************************************/
-//取得使用端的影像
-function grabWebCamVideo() {
-    console.log('Getting user media (video) ...');
-    navigator.mediaDevices.getUserMedia({
-            audio: false,
-            video: true
-        })
-        .then(gotStream)
-        .catch(function(e) {
-            alert('getUserMedia() error: ' + e.name);
-        });
-}
+//取得使用者端的影像
+console.log('Getting user media ...');
+navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: true
+    })
+    .then(gotStream)
+    .catch(function(e) {
+        console.log('發生錯誤了看這裡:' + e);
+    });
 
 function gotStream(stream) {
-    var streamURL = window.URL.createObjectURL(stream);
-    console.log('getUserMedia video stream URL:', streamURL);
-    window.stream = stream; // stream available to console
-    video.src = streamURL;
-    video.onloadedmetadata = function() {
-        photo.width = photoContextW = video.videoWidth;
-        photo.height = photoContextH = video.videoHeight;
+    //window.stream = stream; // stream available to console
+    localVideo.src = window.URL.createObjectURL(stream);
+    localStream = stream;
+    sendMessage('got user media');
+    localVideo.onloadedmetadata = function() {
+        photo.width = photoContextW = localVideo.videoWidth;
+        photo.height = photoContextH = localVideo.videoHeight;
         console.log('gotStream with with and height:', photoContextW, photoContextH);
     };
     show(snapBtn);
+    if (isInitiator) {
+        createPeerConnection(isInitiator, configuration);
+        peerConn.addStream(localStream);
+        isStarted = true;
+        console.log('Creating an offer');
+        peerConn.createOffer(onLocalSessionCreated, logError);
+    }
 }
 
 /****************************************************************************
  * WebRTC peer connection and data channel
  ****************************************************************************/
 
-var peerConn;
-var photoChannel;
-var msgChannel;
-
 //信令機制的訊息交換
 function signalingMessageCallback(message) {
-    if (message.type === 'offer') {
+    if (message === 'got user media') {
+        createPeerConnection(isInitiator, configuration);
+        peerConn.addStream(localStream);
+        isStarted = true;
+        if (isInitiator) {
+            console.log('Creating an offer');
+            peerConn.createOffer(onLocalSessionCreated, logError);
+        }
+    } else if (message.type === 'offer') {
+        if (!isInitiator && !isStarted) {
+            createPeerConnection(isInitiator, configuration);
+            peerConn.addStream(localStream);
+            isStarted = true;
+        }
         console.log('Got offer. Sending answer to peer.');
-        console.log(message);
         peerConn.setRemoteDescription(new RTCSessionDescription(message), function() {},
             logError);
         peerConn.createAnswer(onLocalSessionCreated, logError);
 
     } else if (message.type === 'answer') {
         console.log('Got answer.');
-        console.log(message);
         peerConn.setRemoteDescription(new RTCSessionDescription(message), function() {},
             logError);
 
     } else if (message.type === 'candidate') {
         peerConn.addIceCandidate(new RTCIceCandidate({
+            sdpMLineIndex: message.label,
             candidate: message.candidate
         }));
 
     } else if (message === 'bye') {
-        // TODO: cleanup RTC connection?
+        handleRemoteHangup();
     }
 }
 
@@ -215,7 +231,7 @@ function createPeerConnection(isInitiator, config) {
 
     // send any ice candidates to the other peer
     peerConn.onicecandidate = function(event) {
-        console.log('icecandidate event:', event);
+        console.log('獲取ICE候選伺服器事件: ', event);
         if (event.candidate) {
             sendMessage({
                 type: 'candidate',
@@ -228,10 +244,14 @@ function createPeerConnection(isInitiator, config) {
         }
     };
 
-    peerConn.ontrack = function(event) {
+    peerConn.onaddstream = function(event) {
         console.log('Remote stream added.');
         remoteVideo.src = window.URL.createObjectURL(event.stream);
         remoteStream = event.stream;
+    };
+
+    peerConn.onremovestream = function(event) {
+        console.log('Remote stream removed. Event: ', event);
     };
 
     //如果是開房的人
@@ -245,9 +265,6 @@ function createPeerConnection(isInitiator, config) {
         //建立成功後，立即處理
         onDataChannelCreated(photoChannel);
         onDataChannelCreated(msgChannel);
-
-        console.log('Creating an offer');
-        peerConn.createOffer(onLocalSessionCreated, logError);
 
         //如果不是開房的，是加入別人的房間
     } else {
@@ -269,16 +286,16 @@ function createPeerConnection(isInitiator, config) {
 
 //建立連線的事件處理
 function onLocalSessionCreated(desc) {
-    console.log('local session created:', desc);
+    console.log('本地端設定檔產生完成事件:', desc);
     peerConn.setLocalDescription(desc, function() {
-        console.log('sending local desc:', peerConn.localDescription);
+        console.log('傳送本地端設定檔:', peerConn.localDescription);
         sendMessage(peerConn.localDescription);
     }, logError);
 }
 
 //建立資料傳遞頻道後，立即處理的函數
 function onDataChannelCreated(channel) {
-    console.log('onDataChannelCreated:', channel);
+    console.log('資料傳遞頻道已建立事件:', channel);
 
     channel.onopen = function() {
         console.log('channel: ' + channel.label + ' is now opened!!!');
@@ -300,6 +317,20 @@ function onDataChannelCreated(channel) {
         }
     }
 
+}
+
+function handleRemoteHangup() {
+    console.log('Session terminated.');
+    stop();
+    isInitiator = false;
+}
+
+function stop() {
+    isStarted = false;
+    // isAudioMuted = false;
+    // isVideoMuted = false;
+    pc.close();
+    pc = null;
 }
 
 //如果是在chrome環境下，頻道接收到訊息(channel.onmessage)
@@ -393,7 +424,7 @@ function sendText() {
 }
 
 function snapPhoto() {
-    photoContext.drawImage(video, 0, 0, photo.width, photo.height);
+    photoContext.drawImage(localVideo, 0, 0, photo.width, photo.height);
     show(photo, sendBtn);
 }
 

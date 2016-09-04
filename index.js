@@ -15,13 +15,12 @@ io.sockets.on('connection', function(socket) {
 
     // convenience function to log server messages on the client
     function log() {
-        var array = ['Message from server:'];
+        var array = ['Server:'];
         array.push.apply(array, arguments);
         socket.emit('log', array);
     }
 
     socket.on('message', function(message) {
-        log('Client said: ', message);
         // for a real app, would be room-only (not broadcast)
         socket.broadcast.emit('message', message);
     });
@@ -57,6 +56,10 @@ io.sockets.on('connection', function(socket) {
                 }
             });
         }
+    });
+
+    socket.on('bye', function() {
+        console.log('received bye');
     });
 
 });
