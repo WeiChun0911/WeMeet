@@ -266,8 +266,9 @@ function createPeerConnection(isInitiator, config) {
         onDataChannelCreated(photoChannel);
         onDataChannelCreated(msgChannel);
 
-        //如果不是開房的，是加入別人的房間
+        
     } else {
+        //如果不是開房的，是加入別人的房間
         //如果有連線成功，會接到這個事件
         peerConn.ondatachannel = function(event) {
             console.log('ondatachannel:', event.channel.label);
