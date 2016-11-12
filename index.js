@@ -1,13 +1,23 @@
 'use strict';
 
 var os = require('os');
-var nodeStatic = require('node-static');
-var http = require('http');
 var socketIO = require('socket.io');
+var https = require('https');
+var fs = require('fs');
+var nodeStatic = require('node-static');
 
-var fileServer = new(nodeStatic.Server)();
-var app = http.createServer(function(req, res) {
-    fileServer.serve(req, res);
+//HTTPS參數
+const option = {
+  key: fs.readFileSync('./privatekey.pem'),
+  cert: fs.readFileSync('./certificate.pem')
+};
+
+//靜態檔案伺服器
+var file = new nodeStatic.Server();
+
+//產生HTTPS伺服器
+var app = https.createServer(option,(req, res)=>{
+    file.serve(req, res);
 }).listen(8787);
 
 var io = socketIO.listen(app);
