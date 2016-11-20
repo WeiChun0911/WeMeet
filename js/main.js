@@ -29,12 +29,14 @@ let remoteStream;
 let localVideo = document.getElementById('localVideo');
 let remoteVideo = document.getElementById('remoteVideo');
 
+/*  For PhotoShooting & sending
 let photo = document.getElementById('photo');
 let photoContext = photo.getContext('2d');
 let trail = document.getElementById('trail');
 let snapBtn = document.getElementById('snap');
 let sendBtn = document.getElementById('send');
 let snapAndSendBtn = document.getElementById('snapAndSend');
+*/
 
 //取得文字區的HTML元素
 let dataChannelSend = document.getElementById('dataChannelSend');
@@ -52,9 +54,12 @@ let msgChannel;
 
 // Attach event handlers
 //在按鈕上，附加事件處理函數
+
+/* For PhotoShooting & sending
 snapBtn.addEventListener('click', snapPhoto);
 sendBtn.addEventListener('click', sendPhoto);
 snapAndSendBtn.addEventListener('click', snapAndSend);
+*/
 msgButton.addEventListener('click', sendText);
 
 // Create a random room if not already present in the URL.
@@ -163,18 +168,19 @@ navigator.mediaDevices.getUserMedia({
     });
 
 function gotStream(stream) {
-    //window.stream = stream; // stream available to console
+    window.stream = stream; // stream available to console
     localVideo.src = window.URL.createObjectURL(stream);
     localStream = stream;
     sendMessage('got user media');
-    localVideo.onloadedmetadata = function() {
-        photo.width = photoContextW = localVideo.videoWidth;
-        photo.height = photoContextH = localVideo.videoHeight;
-        console.log('gotStream with with and height:', photoContextW, photoContextH);
-    };
-    show(snapBtn);
+    // localVideo.onloadedmetadata = function() {
+    //     photo.width = photoContextW = localVideo.videoWidth;
+    //     photo.height = photoContextH = localVideo.videoHeight;
+    //     console.log('gotStream with with and height:', photoContextW, photoContextH);
+    // };
+    // show(snapBtn);
     if (isInitiator) {
-        createPeerConnection(isInitiator, configuration);
+        createPeerConnection(isInitiator, configuration
+);
         peerConn.addStream(localStream);
         isStarted = true;
         console.log('Creating an offer');
@@ -411,11 +417,11 @@ function sendText() {
     pTag.setAttributeNode(align);
     //取得現在時間
     let date = new Date();
-    //自定義時間格式:YYYY-MM-DD
-    let formattedTime = date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate() + ' ' + date.getHours() + ':' + date.getMinutes();
-    let TextNode = document.createTextNode(dataChannelSend.value + ': (' + formattedTime + ') ' + ID);
+    //自定義時間格式:Hour-Minute
+    let formattedTime = date.getHours() + ':' + date.getMinutes();
+    let TextNode = document.createTextNode(dataChannelSend.value + ': [' + formattedTime + ']' + ID);
     //透過訊息頻道，發送純文字訊息
-    msgChannel.send(ID + '( ' + formattedTime + ' ): ' + dataChannelSend.value);
+    msgChannel.send(ID + '[' + formattedTime + ']: ' + dataChannelSend.value);
     //把文字塞進<p></p>裡面
     pTag.appendChild(TextNode);
     //把包好的<p></p>塞進chatBox裡，作為發言者的紀錄
