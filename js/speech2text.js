@@ -63,6 +63,7 @@ function start() {
             client.endMicAndRecognition();
         }, 5000);
     } else {
+        console.log("Using File");
         // if (luisCfg) {
         //     client = Microsoft.CognitiveServices.SpeechRecognition.SpeechRecognitionServiceFactory.createDataClientWithIntent(
         //         getLanguage(),
