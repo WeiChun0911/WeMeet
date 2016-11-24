@@ -55,53 +55,49 @@
         </div>
     </div>
     <div style="float: left; width: 300px;">
-        <h1>語音辨識文字</h1>
-        <div id="voice2TextReceive">
-            <table>
-                <tr>
-                    <td>
-                        <h1>Speech.JS</h1>
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                        <select id="useMic" required>
-                            <option value="true">使用麥克風</option>
-                            <option value="false">傳送聲音檔案</option>
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <td>KEY:</td>
-                </tr>
-                <tr>
-                    <td>
-                        <input id="key" type="text" size="40">
-                    </td>
-                </tr>
-                <!-- For LUIS 
-            <tr>
-                <td align="right">LUIS AppId:
-                    <input id="luis_appid" type="text" size="40">
-                </td>
-            </tr>
-            <tr>
-                <td align="right">LUIS SubscriptionId:
-                    <input id="luis_subid" type="text" size="40">
-                </td>
-            </tr> 
-            -->
-                <tr>
-                    <td>
-                        <button id="transcripe" onclick="start()">Start</button>
-                    </td>
-                </tr>
-                <tr>
-                    <td align="right">
-                        <textarea id="output" style='width:295px;height:200px'></textarea>
-                    </td>
-                </tr>
-            </table>
+        <div>
+            <h1><a class="c1" href="http://dvcs.w3.org/hg/speech-api/raw-file/tip/speechapi.html">Web
+                    Speech API</a></h1>
+            <div id="info">
+                <p id="info_start">
+                    按下麥克風圖示，並開始說話。
+                </p>
+                <p id="info_speak_now" style="display:none">
+                    請開始說話。
+                </p>
+                <p id="info_no_speech" style="display:none">
+                    偵測不到麥克風訊號，請調整裝置的設定。
+                    </a>.
+                </p>
+                <p id="info_no_microphone" style="display:none">
+                    偵測不到麥克風，請正確安裝。
+                </p>
+                <p id="info_allow" style="display:none">
+                    請按下"同意"來啟動麥克風。
+                </p>
+                <p id="info_denied" style="display:none">
+                    存取麥克風被拒。
+                </p>
+                <p id="info_blocked" style="display:none">
+                    麥克風的權限被阻擋，請至chrome://settings/contentExceptions#media-stream更改設定 
+                </p>
+                <p id="info_upgrade" style="display:none">
+                    瀏覽器版本過舊，請更新至Chrome</a> version 25 or 更新，以支援此服務。
+                </p>
+            </div>
+            <div id="div_start">
+                <button id="start_button" onclick="startButton(event)"><img alt="Start" id="start_img" src="./src/mic.gif"></button>
+            </div>
+            <div id="results">
+                <span id="final_span"></span> 
+                <span id="interim_span"></span>
+            </div>
+            <div id="div_language">
+                <select id="select_language" onchange="updateCountry()">
+                </select>&nbsp;&nbsp;
+                <select id="select_dialect">
+                </select>
+            </div>
         </div>
     </div>
     <div style="float: left; width: 300px;">
@@ -133,6 +129,7 @@
     <script src="js/lib/speech.js"></script>
     <script src="js/speech2text.js"></script>
     <script src="js/record.js"></script>
+    <script src="js/chromeRecognition.js"></script>
     <script src="js/main.js"></script>
     <!--   For Electron 
         <script src="mainProcess.js"></script>

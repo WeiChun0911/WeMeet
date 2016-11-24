@@ -1,6 +1,5 @@
 var client;
 var request;
-var transcripe = document.getElementById("transcripe");
 
 function useMic() {
     return document.getElementById("useMic").value;
@@ -10,8 +9,12 @@ function getMode() {
     return Microsoft.CognitiveServices.SpeechRecognition.SpeechRecognitionMode.shortPhrase;
 }
 
-function getKey() {
-    return document.getElementById("key").value;
+function getKey1() {
+    return document.getElementById("key1").value;
+}
+
+function getKey2() {
+    return document.getElementById("key2").value;
 }
 
 function getLanguage() {
@@ -35,13 +38,15 @@ function getLuisConfig() {
 }
 */
 
-function start() {
-    transcripe.textContent = "啟動服務中，請稍後";
-    var mode = getMode();
+function stopRecognition(){
+    client.endMicAndRecognition();
+}
 
+function startRecognition() {
+    var mode = getMode();
     //var luisCfg = getLuisConfig();
 
-    if (useMic()) {
+    if (useMic()=="true") {
         console.log("Using Mic");
         // if (luisCfg) {
         //     client = Microsoft.CognitiveServices.SpeechRecognition.SpeechRecognitionServiceFactory.createMicrophoneClientWithIntent(
@@ -53,15 +58,11 @@ function start() {
         client = Microsoft.CognitiveServices.SpeechRecognition.SpeechRecognitionServiceFactory.createMicrophoneClient(
             mode,
             getLanguage(),
-            getKey()
+            getKey1(),
+            getKey2()
         );
         //}
         client.startMicAndRecognition();
-        transcripe.textContent = "請開始說話，共5秒時間";
-        setTimeout(function() {
-            transcripe.textContent = "Start";
-            client.endMicAndRecognition();
-        }, 5000);
     } else {
         console.log("Using File");
         // if (luisCfg) {
@@ -74,7 +75,9 @@ function start() {
         client = Microsoft.CognitiveServices.SpeechRecognition.SpeechRecognitionServiceFactory.createDataClient(
             mode,
             getLanguage(),
-            getKey());
+            getKey1(),
+            getKey2()
+            );
         //}
         request = new XMLHttpRequest();
         request.open(
@@ -94,16 +97,24 @@ function start() {
 
     client.onPartialResponseReceived = function(response) {
         setText(response);
+        console.log(response);
         console.log("PartialResponseReceived");
     }
 
     client.onFinalResponseReceived = function(response) {
         setText(JSON.stringify(response));
+        console.log(response);
         console.log("FinalResponseReceived");
     }
 
     client.onIntentReceived = function(response) {
         setText(response);
+        console.log(response);
         console.log("IntentReceived");
+    };
+    client.onError = function(response) {
+        setText(response);
+        console.log(response);
+        console.log("ERROR");
     };
 }
