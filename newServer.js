@@ -36,8 +36,8 @@ var app = express();
 
 var argv = minimist(process.argv.slice(2), {
     default: {
-        as_uri: 'https://localhost:8443',
-        ws_uri: 'ws://localhost:8888/kurento'
+        as_uri: 'https://140.123.175.95:8443',
+        ws_uri: 'ws://140.123.175.95:8888/kurento'
     }
 });
 
@@ -119,7 +119,7 @@ wss.on('connection', function(ws) {
         switch (message.id) {
             case "receiveVideoFrom":
                 var senderName = message.sender;
-                var sender = registry.getUserBySession(sessionId);
+                var sender = registry.getUserByName(senderName);
                 var sdpOffer = message.sdpOffer;
                 //傳訊息來的人(原本在房間裡面的人)，發出影像請求給sender(新加入的人)
                 registry.getUserBySession(sessionId).receiveVideoFrom(sender, sdpOffer);
@@ -167,16 +167,6 @@ var UserSession = {
         var pipeline = _pipeline;
         var outgoingMedia = null;
 
-        //一個UserSession物件，創建一個Endpoint物件
-        createMediaElements(pipeline, connections[sessionId], name, function(error, webRtcEndpoint) {
-            if (error) {
-                console.log("創建webrtc終端物件出錯 : " + error);
-            }
-            outgoingMedia = webRtcEndpoint;
-            console.log("已取得webRtcEndpoint");
-            return callback(userSession);
-        });
-
         userSession.getOutgoingWebRtcPeer = function() {
             return outgoingMedia;
         }
@@ -202,41 +192,42 @@ var UserSession = {
         //找到新人(sender)物件，並將請求處理(processOffer)後，回傳答案給原本在房內的人
         userSession.receiveVideoFrom = function(sender, sdpOffer) {
             console.log("USER: " + name + " => connecting with " + sender.getName() + " in room: " + roomName);
-            console.log("USER: " + name + " => 發出的 SdpOffer for " + sender.getName() + " is " + sdpOffer);
+            //console.log("USER: " + name + " => 發出的 SdpOffer for " + sender.getName() + " is " + sdpOffer);
             console.log("User: " + name + " 向使用者 : " + sender.getName() + "請求影像!");
 
-            var ipSdpAnswer = getEndpointForUser(sender).processOffer(sdpOffer);
-            console.log("已處理sdp要求並產生回應: " + ipSdpAnswer);
+            getEndpointForUser(sender).processOffer(sdpOffer, function(error, sdpAnswer) {
+                if (error) {
+                    pipeline.release();
+                    console.error(error);
+                }
+                console.log("Sender: " + sender.getName() + " 的SdpAnswer: " + JSON.stringify(sdpAnswer));
+                var scParams = {
+                    "id": "receiveVideoAnswer",
+                    "name": sender.getName(),
+                    "sdpAnswer": sdpAnswer
+                };
 
-            var scParams = {
-                "id": "receiveVideoAnswer",
-                "name": sender.getName(),
-                "sdpAnswer": ipSdpAnswer
-            };
-
-            console.log("USER: " + name + " => SdpAnswer for " + sender.getName() + " is " + JSON.stringify(ipSdpAnswer));
-            //把Answer回傳給Sender
-            userSession.sendMessage(scParams);
-            console.log("gather candidates");
-            getEndpointForUser(sender).gatherCandidates();
+                //把Answer回傳給Sender
+                userSession.sendMessage(scParams);
+                console.log("gather candidates");
+                getEndpointForUser(sender).gatherCandidates();
+            });
         }
 
         var getEndpointForUser = function(sender) {
             if (sender.getName() == name) {
                 console.log("PARTICIPANT: " + name + " => is configuring loopback");
-                outgoingMedia.connect(outgoingMedia);
                 return outgoingMedia;
             }
-            console.log("使用者: " + name + " 正在向 " + sender.getName() + "取得影像中!");
             //先找看看incomingMedia裡面有沒有該使用者
             var incoming = incomingMedia[sender.getName()];
             if (incoming == null) {
                 console.log("PARTICIPANT: " + name + " creating new endpoint for " + sender.getName());
                 //視作一個在本地端的Sender的分身，專門用來接收Sender的影像
-                createMediaElements(sender.getPipeline(), connections[sender.getSession()], sender.getName(), function(error, webRtcEndpoint) {
+                return createMediaElements(sender.getPipeline(), connections[sender.getSession()], sender.getName(), function(error, webRtcEndpoint) {
                     if (error) {
                         pipeline.release();
-                        return callback(error);
+                        console.error(error);
                     }
                     incoming = webRtcEndpoint;
                     incomingMedia[sender.getName()] = incoming;
@@ -250,26 +241,19 @@ var UserSession = {
                     sender.getOutgoingWebRtcPeer().connect(incoming, function(error) {
                         if (error) {
                             pipeline.release();
-                            return callback(error);
+                            console.error(error);
                         }
                     });
-                    return registry.getUserBySession(sender.session);
+                    return incoming;
                 });
             } else {
-                //把sender傳出影像的endpoint與
-                //原使用者這邊替新人創造的incomingEndpoint連結在一起
-                //    原使用者的網頁     新人的網頁
-                //    自己的outgoing |  新人的outgoing       
-                //    自己的incoming |  新人的incoming
-                //    (裡面有很多endpoint是用來接收別人的影像的)
-                //這邊將原使用者將自己的incoming Endpoint連結上 新人的outgoing Endpoint
                 sender.getOutgoingWebRtcPeer().connect(incoming, function(error) {
                     if (error) {
                         pipeline.release();
-                        return callback(error);
+                        console.error(error);
                     }
                 });
-                return registry.getUserBySession(sender.session);
+                return incoming;
             }
         }
 
@@ -334,30 +318,41 @@ var UserSession = {
          *
          * @see java.lang.Object#equals(java.lang.Object)
          */
-        userSession.equals = function(obj) {
-            if (userSession == obj) {
-                return true;
-            }
-            if (obj == null) {
-                return false;
-            }
-            var other = obj;
-            var eq = name.equals(other.name);
-            eq = roomName.equals(other.roomName);
-            return eq;
-        }
+        // userSession.equals = function(obj) {
+        //     if (userSession == obj) {
+        //         return true;
+        //     }
+        //     if (obj == null) {
+        //         return false;
+        //     }
+        //     var other = obj;
+        //     var eq = name.equals(other.name);
+        //     eq = roomName.equals(other.roomName);
+        //     return eq;
+        // }
 
         /*
          * (non-Javadoc)
          *
          * @see java.lang.Object#hashCode()
          */
-        userSession.hashCode = function() {
-            var result = 1;
-            result = 31 * result + name.hashCode();
-            result = 31 * result + roomName.hashCode();
-            return result;
-        };
+        // userSession.hashCode = function() {
+        //     var result = 1;
+        //     result = 31 * result + name.hashCode();
+        //     result = 31 * result + roomName.hashCode();
+        //     return result;
+        // };
+
+        //一個UserSession物件，創建一個Endpoint物件
+        createMediaElements(pipeline, connections[sessionId], name, function(error, webRtcEndpoint) {
+            if (error) {
+                pipeline.release();
+                console.error(error);
+            }
+            outgoingMedia = webRtcEndpoint;
+            console.log("已取得webRtcEndpoint");
+            callback(userSession);
+        });
     }　　
 };
 /***************************************
@@ -367,23 +362,19 @@ var UserRegistry = {
     create: function() {　　　　
         var registry = {};
         var usersBySessionId = {};
+        var usersByName = {};
         registry.register = function(user) {
-            var userName = user.getName();
             var userSession = user.getSession();
+            var name = user.getName();
             usersBySessionId[userSession] = user;
+            usersByName[name] = user;
+        }
+        registry.getUserByName = function(name) {
+            return usersByName[name];
         }
         registry.getUserBySession = function(session) {
             return usersBySessionId[session];
-        }
-        registry.exists = function(name) {
-            return usersByName.includes(name);
-        }
-        registry.removeBySession = function(session) {
-            user = getBySession(session);
-            usersByName.splice(usersByName.indexOf(user.getName()), 1);
-            usersBySessionId.splice(usersBySessionId.indexOf(user.getSession()), 1);;
-            return user;
-        }　　　　　　　　　　　　
+        }　　　　　　　　　　
         return registry;　　　　
     }　　
 };
@@ -448,17 +439,10 @@ var Room = {
                 name: newParticipant.getName()
             };
             console.log("ROOM: " + roomName + " => Notifying other participants of new participant: " + newParticipant.getName());
-            /* 
-                Object.keys():
-                var obj = { 0: 'a', 1: 'b', 2: 'c' };
-                console.log(Object.keys(obj)); 
-                console: ['0', '1', '2']
-            */
             var participants = room.getParticipants();
             for (var participantName in participants) {
                 try {
-                    console.log(participants);
-                    console.log("正在向使用者:" + participants[participantName] + "傳送新人加入的訊息")
+                    console.log("正在向使用者:" + participants[participantName].getName() + "傳送新人加入的訊息")
                     participants[participantName].sendMessage(newParticipantMsg);
                 } catch (error) {
                     console.log("房間: " + roomName + " ，使用者: " + participantName + " 無法辨識: " + error);
@@ -474,7 +458,7 @@ var Room = {
                     "id": "participantLeft",
                     "name": _name
                 };
-                for(var participantName in participants){
+                for (var participantName in participants) {
                     try {
                         participants[participantName].cancelVideoFrom(_name);
                         participants[participantName].sendMessage(participantLeftJson);
@@ -600,7 +584,7 @@ function getKurentoClient(callback) {
 }
 
 function createMediaElements(pipeline, ws, name, callback) {
-    pipeline.create('WebRtcEndpoint', function(error, webRtcEndpoint) {
+    return pipeline.create('WebRtcEndpoint', function(error, webRtcEndpoint) {
         if (error) {
             pipeline.release();
             return callback(error);
@@ -621,7 +605,7 @@ function createMediaElements(pipeline, ws, name, callback) {
                 candidate: candidate
             }));
         });
-        callback(error, webRtcEndpoint);
+        return callback(null, webRtcEndpoint);
     });
 }
 
