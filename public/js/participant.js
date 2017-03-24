@@ -72,7 +72,7 @@ function Participant(name) {
         return ((document.getElementsByClassName(PARTICIPANT_MAIN_CLASS)).length != 0);
     }
 
-    this.offerToReceiveVideo = function(error, offerSdp, wp) {
+    this.offerToReceiveVideo = function(error, offerSdp) {
         if (error) {
             return console.error("sdp offer error");
         }
@@ -85,14 +85,12 @@ function Participant(name) {
         sendMessage(msg);
     }
 
-
-    this.onIceCandidate = function(candidate, wp) {
+    this.onIceCandidate = function(candidate) {
         console.log("Local candidate" + JSON.stringify(candidate));
 
         var message = {
             id: 'onIceCandidate',
             candidate: candidate,
-            name: name
         };
         sendMessage(message);
     }

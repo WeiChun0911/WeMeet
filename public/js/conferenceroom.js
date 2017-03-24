@@ -78,6 +78,10 @@ function receiveVideoResponse(result) {
     console.log(result.sdpAnswer);
     participants[result.name].rtcPeer.processAnswer(result.sdpAnswer, function(error) {
         if (error) return console.error(error);
+        var message = {
+            id:'gatherCandidate'
+        }
+        sendMessage(message);
     });
 }
 

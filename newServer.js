@@ -139,10 +139,12 @@ wss.on('connection', function(ws) {
 
             case "onIceCandidate":
                 var candidate = kurento.getComplexType('IceCandidate')(message.candidate);
-                if (registry.getUserBySession(session)) {
-                    var cand = new IceCandidate(candidate.candidate, candidate.sdpMid, candidate.sdpMLineIndex);
-                    registry.getUserBySession(session).addCandidate(cand, message.sender);
+                if (registry.getUserBySession(sessionId)) {
+                    registry.getUserBySession(sessionId).addCandidate(candidate);
                 }
+                break;
+            case "gatherCandidate":
+                registry.getUserBySession(sessionId).getOutgoingWebRtcPeer().gatherCandidates();
                 break;
             default:
                 ws.send(JSON.stringify({
@@ -177,12 +179,8 @@ var UserSession = {
             return sessionId;
         }
         userSession.getPipeline = function() {
-                return pipeline;
-            }
-            /*
-                The room to which the user is currently attending.   
-                return The room
-            */
+            return pipeline;
+        }
 
         userSession.getRoomName = function() {
             return roomName;
@@ -194,7 +192,6 @@ var UserSession = {
             console.log("USER: " + name + " => connecting with " + sender.getName() + " in room: " + roomName);
             //console.log("USER: " + name + " => 發出的 SdpOffer for " + sender.getName() + " is " + sdpOffer);
             console.log("User: " + name + " 向使用者 : " + sender.getName() + "請求影像!");
-
             if (sender.getName() == name) {
                 console.log("PARTICIPANT: " + name + " => is configuring loopback");
                 outgoingMedia.processOffer(sdpOffer, function(error, sdpAnswer) {
@@ -202,14 +199,12 @@ var UserSession = {
                         pipeline.release();
                         return callback(error);
                     }
-                    console.log("已處理sdp要求並產生回應: " + sdpAnswer);
                     console.log("Sender: " + sender.getName() + " 的SdpAnswer: " + JSON.stringify(sdpAnswer));
                     var scParams = {
                         "id": "receiveVideoAnswer",
                         "name": sender.getName(),
                         "sdpAnswer": sdpAnswer
                     };
-
                     //把Answer回傳給Sender
                     userSession.sendMessage(scParams);
                     console.log("gather candidates");
@@ -235,7 +230,7 @@ var UserSession = {
                             console.error(error);
                         }
                     });
-                    incoming.processOffer(sdpOffer, function(error, sdpAnswer) {
+                    sender.getOutgoingWebRtcPeer().processOffer(sdpOffer, function(error, sdpAnswer) {
                         if (error) {
                             pipeline.release();
                             return callback(error);
@@ -261,7 +256,7 @@ var UserSession = {
                         console.error(error);
                     }
                 });
-                incoming.processOffer(sdpOffer, function(error, sdpAnswer) {
+                sender.getOutgoingWebRtcPeer().processOffer(sdpOffer, function(error, sdpAnswer) {
                     if (error) {
                         pipeline.release();
                         return callback(error);
@@ -276,8 +271,8 @@ var UserSession = {
 
                     //把Answer回傳給Sender
                     userSession.sendMessage(scParams);
-                    console.log("gather candidates");
-                    incoming.gatherCandidates();
+                    // console.log("gather candidates");
+                    // incoming.gatherCandidates();
                 });;
             }
         }
@@ -330,49 +325,20 @@ var UserSession = {
             if (userSession.name == name) {
                 outgoingMedia.addIceCandidate(candidate);
             } else {
-                var webRtc = incomingMedia.name;
+                var webRtc = incomingMedia[name];
                 if (webRtc != null) {
                     webRtc.addIceCandidate(candidate);
                 }
             }
         }
-
-        /*
-         * (non-Javadoc)
-         *
-         * @see java.lang.Object#equals(java.lang.Object)
-         */
-        // userSession.equals = function(obj) {
-        //     if (userSession == obj) {
-        //         return true;
-        //     }
-        //     if (obj == null) {
-        //         return false;
-        //     }
-        //     var other = obj;
-        //     var eq = name.equals(other.name);
-        //     eq = roomName.equals(other.roomName);
-        //     return eq;
-        // }
-
-        /*
-         * (non-Javadoc)
-         *
-         * @see java.lang.Object#hashCode()
-         */
-        // userSession.hashCode = function() {
-        //     var result = 1;
-        //     result = 31 * result + name.hashCode();
-        //     result = 31 * result + roomName.hashCode();
-        //     return result;
-        // };
-
         //一個UserSession物件，創建一個Endpoint物件
         createMediaElements(pipeline, connections[sessionId], name, function(webRtcEndpoint) {
             outgoingMedia = webRtcEndpoint;
             console.log("已取得webRtcEndpoint");
             return callback(userSession);
         });
+
+        return userSession;
     }　　
 };
 /***************************************
@@ -436,7 +402,6 @@ var Room = {
                             room.sendParticipantNames(participant);
                             console.log("已將使用者加入房間");
                         });
-
                     });
                 });
             } else {
@@ -569,24 +534,6 @@ var roomManager = RoomManager.create();
 /***************************************
  *     Function Definition Part        *
  ***************************************/
-// recover kurentoClient for the first time.
-/*  use kurento(ws_uri, options, callback)
-    from null to an defined object(class):
-    KurentoClient {
-        domain: null,
-        _events: { disconnect: [Function] },
-        _eventsCount: 1,
-        _maxListeners: undefined,
-        beginTransaction: [Function: bound ],
-        endTransaction: [Function: bound ],
-        transaction: [Function: bound ],
-        getMediaobjectById: [Function],
-        create: [Function: bound ],
-        close: [Function],
-        then: [Function],
-        catch: [Function: bound ] 
-    }
-*/
 function getKurentoClient(callback) {
     console.log("開始取得KurentoClient工具中");
     if (kurentoClient !== null) {
@@ -640,20 +587,37 @@ function stop(sessionId) {
     }
 }
 
-function joinRoom(params, _sessionId) {
-    var roomName = params.room;
-    var userName = params.name;
-    console.log("使用者: " + userName + " 正在加入房間: " + roomName);
-    roomManager.getRoom(roomName, function(room) {
-        room.addParticipant(userName, _sessionId);
-    });
-}
-
 function leaveRoom(user) {
     roomManager.getRoom(user.getRoomName(), function(room) {
         room.leave(user);
         if (Object.keys(room.getParticipants()).length === 0) {
             roomManager.removeRoom(room);
         }
+    });
+}
+
+function onIceCandidate(sessionId, _candidate) {
+    var candidate = kurento.getComplexType('IceCandidate')(_candidate);
+
+    if (sessions[sessionId]) {
+        console.info('Sending candidate');
+        var webRtcEndpoint = sessions[sessionId].webRtcEndpoint;
+        webRtcEndpoint.addIceCandidate(candidate);
+    }
+    else {
+        console.info('Queueing candidate');
+        if (!candidatesQueue[sessionId]) {
+            candidatesQueue[sessionId] = [];
+        }
+        candidatesQueue[sessionId].push(candidate);
+    }
+}
+
+function joinRoom(params, _sessionId) {
+    var roomName = params.room;
+    var userName = params.name;
+    console.log("使用者: " + userName + " 正在加入房間: " + roomName);
+    roomManager.getRoom(roomName, function(room) {
+        room.addParticipant(userName, _sessionId);
     });
 }
