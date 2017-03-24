@@ -195,41 +195,32 @@ var UserSession = {
             //console.log("USER: " + name + " => 發出的 SdpOffer for " + sender.getName() + " is " + sdpOffer);
             console.log("User: " + name + " 向使用者 : " + sender.getName() + "請求影像!");
 
-            getEndpointForUser(sender).processOffer(sdpOffer, function(error, sdpAnswer) {
-                if (error) {
-                    pipeline.release();
-                    console.error(error);
-                }
-                console.log("Sender: " + sender.getName() + " 的SdpAnswer: " + JSON.stringify(sdpAnswer));
-                var scParams = {
-                    "id": "receiveVideoAnswer",
-                    "name": sender.getName(),
-                    "sdpAnswer": sdpAnswer
-                };
-
-                //把Answer回傳給Sender
-                userSession.sendMessage(scParams);
-                console.log("gather candidates");
-                getEndpointForUser(sender).gatherCandidates();
-            });
-        }
-
-        var getEndpointForUser = function(sender) {
             if (sender.getName() == name) {
                 console.log("PARTICIPANT: " + name + " => is configuring loopback");
-                return outgoingMedia;
-            }
-            //先找看看incomingMedia裡面有沒有該使用者
-            var incoming = incomingMedia[sender.getName()];
-            if (incoming == null) {
-                console.log("PARTICIPANT: " + name + " creating new endpoint for " + sender.getName());
-                //視作一個在本地端的Sender的分身，專門用來接收Sender的影像
-                return createMediaElements(sender.getPipeline(), connections[sender.getSession()], sender.getName(), function(error, webRtcEndpoint) {
+                outgoingMedia.processOffer(sdpOffer, function(error, sdpAnswer) {
                     if (error) {
                         pipeline.release();
-                        console.error(error);
+                        return callback(error);
                     }
-                    incoming = webRtcEndpoint;
+                    console.log("已處理sdp要求並產生回應: " + sdpAnswer);
+                    console.log("Sender: " + sender.getName() + " 的SdpAnswer: " + JSON.stringify(sdpAnswer));
+                    var scParams = {
+                        "id": "receiveVideoAnswer",
+                        "name": sender.getName(),
+                        "sdpAnswer": sdpAnswer
+                    };
+
+                    //把Answer回傳給Sender
+                    userSession.sendMessage(scParams);
+                    console.log("gather candidates");
+                    outgoingMedia.gatherCandidates();
+                });
+            } else if (incomingMedia[sender.getName()] == undefined) {
+                console.log("PARTICIPANT: " + name + " creating new endpoint for " + sender.getName());
+                //視作一個在本地端的Sender的分身，專門用來接收Sender的影像
+                createMediaElements(sender.getPipeline(), connections[sender.getSession()], sender.getName(), function(webRtcEndpoint) {
+                    let incoming = webRtcEndpoint;
+                    console.log("已取得webRtcEndpoint");
                     incomingMedia[sender.getName()] = incoming;
                     //把sender傳出影像的endpoint與
                     //原使用者這邊替新人創造的incomingEndpoint連結在一起
@@ -244,19 +235,52 @@ var UserSession = {
                             console.error(error);
                         }
                     });
-                    return incoming;
+                    incoming.processOffer(sdpOffer, function(error, sdpAnswer) {
+                        if (error) {
+                            pipeline.release();
+                            return callback(error);
+                        }
+                        console.log("已處理sdp要求並產生回應: " + sdpAnswer);
+                        console.log("Sender: " + sender.getName() + " 的SdpAnswer: " + JSON.stringify(sdpAnswer));
+                        var scParams = {
+                            "id": "receiveVideoAnswer",
+                            "name": sender.getName(),
+                            "sdpAnswer": sdpAnswer
+                        };
+                        //把Answer回傳給Sender
+                        userSession.sendMessage(scParams);
+                        console.log("gather candidates");
+                        incoming.gatherCandidates();
+                    });
                 });
             } else {
+                let incoming = incomingMedia[sender.getName()];
                 sender.getOutgoingWebRtcPeer().connect(incoming, function(error) {
                     if (error) {
                         pipeline.release();
                         console.error(error);
                     }
                 });
-                return incoming;
+                incoming.processOffer(sdpOffer, function(error, sdpAnswer) {
+                    if (error) {
+                        pipeline.release();
+                        return callback(error);
+                    }
+                    console.log("已處理sdp要求並產生回應: " + sdpAnswer);
+                    console.log("Sender: " + sender.getName() + " 的SdpAnswer: " + JSON.stringify(sdpAnswer));
+                    var scParams = {
+                        "id": "receiveVideoAnswer",
+                        "name": sender.getName(),
+                        "sdpAnswer": sdpAnswer
+                    };
+
+                    //把Answer回傳給Sender
+                    userSession.sendMessage(scParams);
+                    console.log("gather candidates");
+                    incoming.gatherCandidates();
+                });;
             }
         }
-
         userSession.cancelVideoFrom = function(senderName) {
             console.log("PARTICIPANT: " + name + " is canceling video reception from: " + senderName);
             var incoming = incomingMedia[senderName];
@@ -344,14 +368,10 @@ var UserSession = {
         // };
 
         //一個UserSession物件，創建一個Endpoint物件
-        createMediaElements(pipeline, connections[sessionId], name, function(error, webRtcEndpoint) {
-            if (error) {
-                pipeline.release();
-                console.error(error);
-            }
+        createMediaElements(pipeline, connections[sessionId], name, function(webRtcEndpoint) {
             outgoingMedia = webRtcEndpoint;
             console.log("已取得webRtcEndpoint");
-            callback(userSession);
+            return callback(userSession);
         });
     }　　
 };
@@ -584,10 +604,11 @@ function getKurentoClient(callback) {
 }
 
 function createMediaElements(pipeline, ws, name, callback) {
-    return pipeline.create('WebRtcEndpoint', function(error, webRtcEndpoint) {
+    console.log("正在創造WebRtcEndpoint!");
+    pipeline.create('WebRtcEndpoint', function(error, webRtcEndpoint) {
         if (error) {
             pipeline.release();
-            return callback(error);
+            console.error(error);
         }
         //如果此userSession物件，有候選人，就把它全部加入
         if (candidatesQueue[ws.sessionId]) {
@@ -605,7 +626,7 @@ function createMediaElements(pipeline, ws, name, callback) {
                 candidate: candidate
             }));
         });
-        return callback(null, webRtcEndpoint);
+        return callback(webRtcEndpoint);
     });
 }
 
