@@ -90,6 +90,7 @@ function Participant(name) {
 
         var message = {
             id: 'onIceCandidate',
+            name: name,
             candidate: candidate,
         };
         sendMessage(message);

@@ -78,10 +78,6 @@ function receiveVideoResponse(result) {
     console.log(result.sdpAnswer);
     participants[result.name].rtcPeer.processAnswer(result.sdpAnswer, function(error) {
         if (error) return console.error(error);
-        var message = {
-            id:'gatherCandidate'
-        }
-        sendMessage(message);
     });
 }
 
@@ -111,11 +107,11 @@ function onExistingParticipants(existingParticipants) {
     var video = participant.getVideoElement();
 
     var options = {
-        localVideo: video,
-        mediaConstraints: constraints,
-        onicecandidate: participant.onIceCandidate.bind(participant)
-    }
-    //為本地端使用者創建一個影像傳送物件(RtcPeerSendonly)
+            localVideo: video,
+            mediaConstraints: constraints,
+            onicecandidate: participant.onIceCandidate.bind(participant)
+        }
+        //為本地端使用者創建一個影像傳送物件(RtcPeerSendonly)
     participant.rtcPeer = new kurentoUtils.WebRtcPeer.WebRtcPeerSendonly(options,
         function(error) {
             if (error) {
@@ -152,12 +148,12 @@ function receiveVideo(sender) {
     var video = participant.getVideoElement();
 
     var options = {
-        remoteVideo: video,
-        onicecandidate: participant.onIceCandidate.bind(participant)
-    }
-    //讓房內的成員，為新加入的這個人，創建一個接收影像的物件
-    //在此處的Participant為自己以外的房間成員物件，
-    //在本地創建一個用來接收其他成員影像的RTCPeer(WebRtcPeerRecvonly)
+            remoteVideo: video,
+            onicecandidate: participant.onIceCandidate.bind(participant)
+        }
+        //讓房內的成員，為新加入的這個人，創建一個接收影像的物件
+        //在此處的Participant為自己以外的房間成員物件，
+        //在本地創建一個用來接收其他成員影像的RTCPeer(WebRtcPeerRecvonly)
     participant.rtcPeer = new kurentoUtils.WebRtcPeer.WebRtcPeerRecvonly(options,
         function(error) {
             if (error) {
