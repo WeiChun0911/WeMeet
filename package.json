@@ -1,10 +1,6 @@
 {
-    "name": "Meeting",
+    "name": "WeMeet",
     "version": "0.1.0",
-    "main": "mainProcess.js",
-    "description": "WebRTC,electron",
-    "dependencies": {
-        "node-static": "^0.7.7",
-        "socket.io": "^1.2.0"
-    }
+    "main": "server.js",
+    "description": "WebRTC,Voice2Text",
 }
