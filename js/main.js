@@ -11,7 +11,6 @@
 //如果直接連線都失敗了，則改以 TURN 伺服器作為中繼站，
 //讓所有的資料都透過 TURN 伺服器來轉送。
 //因此需要架設私人伺服器。
-//使用Heroku雲端伺服器服務平台，暫時使用免費額度。
 
 let configuration = {
     'iceServers': [{
@@ -29,15 +28,6 @@ let remoteStream;
 let localVideo = document.getElementById('localVideo');
 let remoteVideo = document.getElementById('remoteVideo');
 
-/*  For PhotoShooting & sending
-let photo = document.getElementById('photo');
-let photoContext = photo.getContext('2d');
-let trail = document.getElementById('trail');
-let snapBtn = document.getElementById('snap');
-let sendBtn = document.getElementById('send');
-let snapAndSendBtn = document.getElementById('snapAndSend');
-*/
-
 //取得文字區的HTML元素
 let dataChannelSend = document.getElementById('dataChannelSend');
 let dataChannelReceive = document.getElementById('dataChannelReceive');
@@ -54,12 +44,6 @@ let msgChannel;
 
 // Attach event handlers
 //在按鈕上，附加事件處理函數
-
-/* For PhotoShooting & sending
-snapBtn.addEventListener('click', snapPhoto);
-sendBtn.addEventListener('click', sendPhoto);
-snapAndSendBtn.addEventListener('click', snapAndSend);
-*/
 msgButton.addEventListener('click', sendText);
 
 // Create a random room if not already present in the URL.
@@ -77,14 +61,8 @@ if (!room) {
 
 // Connect to the signaling server
 //連線上私人通訊伺服器
-let socket = io.connect();
-let ID = 'default';
-
-//IP位址訊息
-socket.on('ipaddr', function(ipaddr) {
-    console.log('Server IP address is: ' + ipaddr);
-    updateRoomURL(ipaddr);
-});
+let socket = io.connect("https://localhost:8787");
+let localUserID;
 
 // Join a room
 //傳送加入房間/創建房間的訊息給伺服器
@@ -94,14 +72,26 @@ socket.emit('create or join', room);
 socket.on('created', function(room, clientID) {
     console.log('Created room', room, '- my client ID is', clientID);
     isInitiator = true;
-    ID = clientID;
+    localUserID = clientID;
 });
 
 //加入房間訊息
 socket.on('joined', function(room, clientID) {
     console.log('This peer has joined room', room, 'with client ID', clientID);
     isInitiator = false;
-    ID = clientID;
+    localUserID = clientID;
+});
+
+socket.on('receiveVideoFrom', function() {
+    var senderName = message.sender;
+    var sender = registry.getUserByName(senderName);
+    var sdpOffer = message.sdpOffer;
+    //傳訊息來的人(原本在房間裡面的人)，發出影像請求給sender(新加入的人)
+    registry.getUserBySession(sessionId).receiveVideoFrom(sender, sdpOffer);
+});
+
+socket.on('onIceCandidate', function() {
+    onIceCandidate(sessionId, message.candidate);
 });
 
 //房間滿人訊息
@@ -126,43 +116,21 @@ socket.on('message', function(message) {
     signalingMessageCallback(message);
 });
 
-//如果網址是localhost，就傳送ipaddr訊息給伺服器
-if (location.hostname.match(/localhost|127\.0\.0/)) {
-    socket.emit('ipaddr');
-}
-
-/**
- * Send message to signaling server
- */
-//傳送訊息給伺服器
-function sendMessage(message) {
-    console.log('Client sending message: ', message);
-    socket.emit('message', message);
-}
-
-/**
- * Updates URL on the page so that users can copy&paste it to their peers.
- */
-function updateRoomURL(ipaddr) {
-    var url;
-    if (!ipaddr) {
-        url = location.href;
-    } else {
-        url = location.protocol + '//' + ipaddr + ':8787/#' + room;
-    }
-    roomURL.innerHTML = url;
-}
 
 /****************************************************************************
  * User media (webcam)
  ****************************************************************************/
 //取得使用者端的影像
+
 console.log('Getting user media ...');
 navigator.mediaDevices.getUserMedia({
         audio: false,
         video: true
     })
     .then(gotStream)
+    .then(()=>{
+        console.log('已取得使用者影像');
+    })
     .catch(function(e) {
         console.log('發生錯誤了看這裡:' + e);
     });
@@ -171,16 +139,8 @@ function gotStream(stream) {
     window.stream = stream; // stream available to console
     localVideo.src = window.URL.createObjectURL(stream);
     localStream = stream;
-    sendMessage('got user media');
-    // localVideo.onloadedmetadata = function() {
-    //     photo.width = photoContextW = localVideo.videoWidth;
-    //     photo.height = photoContextH = localVideo.videoHeight;
-    //     console.log('gotStream with with and height:', photoContextW, photoContextH);
-    // };
-    // show(snapBtn);
     if (isInitiator) {
-        createPeerConnection(isInitiator, configuration
-);
+        createPeerConnection(isInitiator, configuration);
         peerConn.addStream(localStream);
         isStarted = true;
         console.log('Creating an offer');
@@ -194,15 +154,7 @@ function gotStream(stream) {
 
 //信令機制的訊息交換
 function signalingMessageCallback(message) {
-    if (message === 'got user media') {
-        createPeerConnection(isInitiator, configuration);
-        peerConn.addStream(localStream);
-        isStarted = true;
-        if (isInitiator) {
-            console.log('Creating an offer');
-            peerConn.createOffer(onLocalSessionCreated, logError);
-        }
-    } else if (message.type === 'offer') {
+    if (message.type == 'offer') {
         if (!isInitiator && !isStarted) {
             createPeerConnection(isInitiator, configuration);
             peerConn.addStream(localStream);
@@ -213,18 +165,18 @@ function signalingMessageCallback(message) {
             logError);
         peerConn.createAnswer(onLocalSessionCreated, logError);
 
-    } else if (message.type === 'answer') {
+    } else if (message.type == 'answer') {
         console.log('Got answer.');
         peerConn.setRemoteDescription(new RTCSessionDescription(message), function() {},
             logError);
 
-    } else if (message.type === 'candidate') {
+    } else if (message.type == 'candidate') {
         peerConn.addIceCandidate(new RTCIceCandidate({
             sdpMLineIndex: message.label,
             candidate: message.candidate
         }));
 
-    } else if (message === 'bye') {
+    } else if (message == 'bye') {
         handleRemoteHangup();
     }
 }
@@ -272,7 +224,6 @@ function createPeerConnection(isInitiator, config) {
         onDataChannelCreated(photoChannel);
         onDataChannelCreated(msgChannel);
 
-        
     } else {
         //如果不是開房的，是加入別人的房間
         //如果有連線成功，會接到這個事件
@@ -366,45 +317,6 @@ function receiveDataChromeFactory() {
         }
     };
 }
-//如果是在firefox環境下，頻道接收到訊息(channel.onmessage)
-function receiveDataFirefoxFactory() {
-    var count, total, parts;
-
-    return function onmessage(event) {
-        if (typeof event.data === 'string') {
-            total = parseInt(event.data);
-            parts = [];
-            count = 0;
-            console.log('Expecting a total of ' + total + ' bytes');
-            return;
-        }
-
-        parts.push(event.data);
-        count += event.data.size;
-        console.log('Got ' + event.data.size + ' byte(s), ' + (total - count) +
-            ' to go.');
-
-        if (count === total) {
-            console.log('Assembling payload');
-            var buf = new Uint8ClampedArray(total);
-            var compose = function(i, pos) {
-                var reader = new FileReader();
-                reader.onload = function() {
-                    buf.set(new Uint8ClampedArray(this.result), pos);
-                    if (i + 1 === parts.length) {
-                        console.log('Done. Rendering photo.');
-                        renderPhoto(buf);
-                    } else {
-                        compose(i + 1, pos + this.result.byteLength);
-                    }
-                };
-                reader.readAsArrayBuffer(parts[i]);
-            };
-            compose(0, 0);
-        }
-    };
-}
-
 
 /****************************************************************************
  * Aux functions, mostly UI-related
@@ -419,9 +331,9 @@ function sendText() {
     let date = new Date();
     //自定義時間格式:Hour-Minute
     let formattedTime = date.getHours() + ':' + date.getMinutes();
-    let TextNode = document.createTextNode(dataChannelSend.value + ': [' + formattedTime + ']' + ID);
+    let TextNode = document.createTextNode(dataChannelSend.value + ': [' + formattedTime + ']' + localUserID);
     //透過訊息頻道，發送純文字訊息
-    msgChannel.send(ID + '[' + formattedTime + ']: ' + dataChannelSend.value);
+    msgChannel.send(localUserID + '[' + formattedTime + ']: ' + dataChannelSend.value);
     //把文字塞進<p></p>裡面
     pTag.appendChild(TextNode);
     //把包好的<p></p>塞進chatBox裡，作為發言者的紀錄
@@ -430,72 +342,16 @@ function sendText() {
     dataChannelSend.value = '';
 }
 
-function snapPhoto() {
-    photoContext.drawImage(localVideo, 0, 0, photo.width, photo.height);
-    show(photo, sendBtn);
-}
-
-function sendPhoto() {
-    // Split data channel message in chunks of this byte length.
-    var CHUNK_LEN = 64000;
-    console.log('width and height ', photoContextW, photoContextH);
-    var img = photoContext.getImageData(0, 0, photoContextW, photoContextH),
-        len = img.data.byteLength,
-        n = len / CHUNK_LEN | 0;
-
-    console.log('Sending a total of ' + len + ' byte(s)');
-    photoChannel.send(len);
-
-    // split the photo and send in chunks of about 64KB
-    for (var i = 0; i < n; i++) {
-        var start = i * CHUNK_LEN,
-            end = (i + 1) * CHUNK_LEN;
-        console.log(start + ' - ' + (end - 1));
-        photoChannel.send(img.data.subarray(start, end));
-    }
-
-    // send the reminder, if any
-    if (len % CHUNK_LEN) {
-        console.log('last ' + len % CHUNK_LEN + ' byte(s)');
-        photoChannel.send(img.data.subarray(n * CHUNK_LEN));
-    }
-}
-
-function snapAndSend() {
-    snapPhoto();
-    sendPhoto();
-}
-
-function renderPhoto(data) {
-    var canvas = document.createElement('canvas');
-    canvas.width = photoContextW;
-    canvas.height = photoContextH;
-    canvas.classList.add('incomingPhoto');
-    // trail is the element holding the incoming images
-    trail.insertBefore(canvas, trail.firstChild);
-
-    var context = canvas.getContext('2d');
-    var img = context.createImageData(photoContextW, photoContextH);
-    img.data.set(data);
-    context.putImageData(img, 0, 0);
-}
-
-function show() {
-    Array.prototype.forEach.call(arguments, function(elem) {
-        elem.style.display = null;
-    });
-}
-
-function hide() {
-    Array.prototype.forEach.call(arguments, function(elem) {
-        elem.style.display = 'none';
-    });
-}
-
 function randomToken() {
     return Math.floor((1 + Math.random()) * 1e16).toString(16).substring(1);
 }
 
 function logError(err) {
     console.log(err.toString(), err);
+}
+
+//傳送訊息給伺服器
+function sendMessage(message) {
+    console.log('Client sending message: ', message);
+    socket.emit('message', message);
 }
