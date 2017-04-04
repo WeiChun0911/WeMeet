@@ -144,13 +144,11 @@ if (!('webkitSpeechRecognition' in window)) {
         if (ignore_onend) {
             return;
         }
-
         start_img.src = '/src/mic.gif';
         if (!final_transcript) {
             showInfo('info_start');
             return;
         }
-
         showInfo('');
         if (window.getSelection) {
             window.getSelection().removeAllRanges();
