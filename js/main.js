@@ -122,18 +122,20 @@ socket.on('message', function(message) {
  ****************************************************************************/
 //取得使用者端的影像
 
-console.log('Getting user media ...');
-navigator.mediaDevices.getUserMedia({
-        audio: false,
-        video: true
-    })
-    .then(gotStream)
-    .then(()=>{
-        console.log('已取得使用者影像');
-    })
-    .catch(function(e) {
-        console.log('發生錯誤了看這裡:' + e);
-    });
+function getUserMedia() {
+    console.log('Getting user media ...');
+    navigator.mediaDevices.getUserMedia({
+            audio: false,
+            video: true
+        })
+        .then(gotStream)
+        .then(() => {
+            console.log('已取得使用者影像');
+        })
+        .catch(function(e) {
+            console.log('發生錯誤了看這裡:' + e);
+        });
+}
 
 function gotStream(stream) {
     window.stream = stream; // stream available to console
@@ -147,6 +149,7 @@ function gotStream(stream) {
         peerConn.createOffer(onLocalSessionCreated, logError);
     }
 }
+
 
 /****************************************************************************
  * WebRTC peer connection and data channel
