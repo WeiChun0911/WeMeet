@@ -61,15 +61,15 @@ let connections = {};
 let photoChannels = {};
 let msgChannels = {};
 
-//傳送加入房間/創建房間的訊息給伺服器
-socket.emit('create or join', room);
-
 //取得使用者端的影像
+
+
 navigator.mediaDevices.getUserMedia({
         audio: true,
         video: true
     })
     .then(function(stream) {
+        window.stream = stream;
         localVideo.srcObject = stream;
         localStream = stream;
         console.log('已取得使用者影像');
@@ -78,12 +78,7 @@ navigator.mediaDevices.getUserMedia({
         console.log('發生錯誤了看這裡:' + e);
     });
 
-
-//房間創建訊息
-socket.on('created', function(room, clientID) {
-    console.log('Created room: ' + room + ' my client ID is ' + clientID);
-    localUserID = clientID;
-});
+socket.emit('join', room);
 
 //加入房間訊息
 socket.on('joined', function(room, clientID) {
@@ -93,6 +88,7 @@ socket.on('joined', function(room, clientID) {
 });
 
 socket.on('newParticipant', function(participantID) {
+    console.log('收到新人加入的訊息');
     //接到新人加入的訊息時，檢查是否已有連線
     if (connections[participantID]) {
         console.log("Connections with" + participantID + "already exists");
@@ -103,23 +99,17 @@ socket.on('newParticipant', function(participantID) {
         var peerConn = createPeerConnection(isInitiator, configuration, participantID);
         peerConn.createOffer()
             .then(function(offer) {
-                return peerConn.setLocalDescription(offer);
-            })
-            .then(() => {
+                peerConn.setLocalDescription(offer);
                 socket.emit('offerRemotePeer', offer, localUserID, participantID)
             })
             .catch(function(e) {
                 console.log('發生錯誤了看這裡: ' + e);
             });
-
-        var video = document.createElement('video');
-        video.id = participantID;
-        video.autoPlay = true;
-        remoteVideo[participantID] = video;
     }
 });
 
 socket.on('onIceCandidate', function(candidate, sender) {
+    console.log('收到遠端的candidate，要加入: ' + JSON.stringify(candidate));
     connections[sender].addIceCandidate(new RTCIceCandidate(candidate))
         .catch((e) => {
             console.log('發生錯誤了看這裡: ' + e);
@@ -127,21 +117,17 @@ socket.on('onIceCandidate', function(candidate, sender) {
 });
 
 socket.on('offer', function(offer, sender) {
+    console.log('收到遠端的 offer，要建立連線並處理: ' + JSON.stringify(offer));
     isInitiator = false;
     let peerConn = createPeerConnection(isInitiator, configuration, sender);
-    peerConn.setRemoteDescription(offer)
+    peerConn.setRemoteDescription(new RTCSessionDescription(offer))
         .then(() => {
-            return peerConn.createAnswer()
+            return peerConn.createAnswer();
         })
         .then((answer) => {
-            return peerConn.setLocalDescription(answer);
-        })
-        .then(() => {
-            socket.emit('answerRemotePeer', {
-                answer: answer,
-                sender: localUserID,
-                receiver: message.sender
-            })
+            console.log('創建好本地端的 answer，要傳出去: ' + JSON.stringify(answer));
+            peerConn.setLocalDescription(answer);
+            socket.emit('answerRemotePeer', answer, localUserID, sender);
         })
         .catch((e) => {
             console.log('發生錯誤了看這裡:' + e);
@@ -149,7 +135,8 @@ socket.on('offer', function(offer, sender) {
 })
 
 socket.on('answer', function(answer, sender) {
-    peerConn.setRemoteDescription(answer);
+    console.log('answer' + JSON.stringify(answer));
+    connections[sender].setRemoteDescription(new RTCSessionDescription(answer));
 });
 
 socket.on('bye', function() {
@@ -161,24 +148,30 @@ socket.on('bye', function() {
  ****************************************************************************/
 //建立點對點連線
 function createPeerConnection(isInitiator, config, remotePeer) {
+    var video = document.createElement('video');
+    video.id = remotePeer;
+    video.autoPlay = true;
+    document.body.appendChild(video);
+    remoteVideo[remotePeer] = video;
+
     let peerConn = new RTCPeerConnection(config);
     connections[remotePeer] = peerConn;
     peerConn.addStream(localStream);
 
     // send any ice candidates to the other peer
     peerConn.onicecandidate = function(event) {
-        console.log('獲取ICE候選伺服器事件: ', event);
         if (event.candidate) {
+            console.log('local端找到ice candidate>要傳出去: ' + JSON.stringify(event.candidate));
             socket.emit('onIceCandidate', event.candidate, localUserID, remotePeer);
         } else {
             console.log('End of candidates.');
         }
     };
 
-    peerConn.ontrack = function(event) {
+    peerConn.onaddstream = function(event) {
         console.log('Remote stream added.');
-        remoteVideo[remotePeer].srcObject = event.stream[0];
-        remoteStream[remotePeer] = event.stream[0];
+        remoteVideo[remotePeer].srcObject = event.stream;
+        remoteStream[remotePeer] = event.stream;
     };
 
     peerConn.onremovestream = function(event) {
@@ -188,7 +181,6 @@ function createPeerConnection(isInitiator, config, remotePeer) {
     //如果是開啟P2P的人
     if (isInitiator) {
         console.log('Creating Data Channel');
-
         //建立資料傳送頻道、訊息傳送頻道
         var photoChannel = peerConn.createDataChannel('photos');
         var msgChannel = peerConn.createDataChannel('messages');
@@ -225,11 +217,10 @@ function onDataChannelCreated(channel) {
     channel.onopen = function() {
         console.log('channel: ' + channel.label + ' is now opened!!!');
     };
-
-    if (channel.label == 'photos') {
-        //暫不做事
-    } else if (channel.label == 'messages') {
-        channel.onmessage = function() {
+    channel.onmessage = function() {
+        if (channel.label == 'photos') {
+            //暫不做事
+        } else if (channel.label == 'messages') {
             //取得接收到的文字
             let TextNode = document.createTextNode(event.data);
             let pTag = document.createElement("p");

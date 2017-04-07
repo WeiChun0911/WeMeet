@@ -24,34 +24,6 @@ if (!isSecureOrigin) {
   location.protocol = 'HTTPS';
 }
 
-// Use old-style gUM to avoid requirement to enable the
-// Enable experimental Web Platform features flag in Chrome 49
-
-/* main.js已經有了
-var constraints = {
-  audio: true,
-  video: true
-};
-
-function handleSuccess(stream) {
-  console.log('getUserMedia() got stream: ', stream);
-  window.stream = stream;
-  if (window.URL) {
-    gumVideo.src = window.URL.createObjectURL(stream);
-  } else {
-    gumVideo.src = stream;
-  }
-}
-
-function handleError(error) {
-  console.log('navigator.getUserMedia error: ', error);
-}
-
-
-navigator.mediaDevices.getUserMedia(constraints).
-    then(handleSuccess).catch(handleError);
-*/
-
 function handleSourceOpen(event) {
   console.log('MediaSource opened');
   sourceBuffer = mediaSource.addSourceBuffer('video/webm; codecs="vp8"');

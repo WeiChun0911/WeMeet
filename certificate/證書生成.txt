@@ -1,3 +1,6 @@
+先修改路徑
+set OPENSSL_CONF=C:\Program Files (x86)\GnuWin32\share\openssl.cnf
+
 生成私鑰(privatekey.pem)
 openssl genrsa -out privatekey.pem 1024
 
