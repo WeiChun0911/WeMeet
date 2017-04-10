@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="src/favicon.png">
+    <title>Homepage</title>
+</head>
+
+<body>
+    <div>
+        <button onclick="location.href='./chat.html#/chatroom'">Create Room</button>
+    </div>
+
+    <div>
+        房號:
+        <input id="roomName" type="text" value="">
+        <button onclick="start()">Join Room</button>
+    </div>
+
+    <script>
+    function start() {
+        location.href = "./chat.html#/chat?name=" + document.getElementById("roomName").value;
+    }
+    </script>
+</body>
+
+</html>
