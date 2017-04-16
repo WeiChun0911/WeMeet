@@ -65,8 +65,8 @@ let msgChannels = {};
 
 
 getUserMedia();
-
 socket.emit('join', room);
+
 
 //加入房間訊息
 socket.on('joined', function(room, clientID) {
@@ -132,10 +132,6 @@ socket.on('participantLeft', function(participantID) {
     delete remoteStream[participantID];
 })
 
-socket.on('bye', function() {
-    handleRemoteHangup();
-})
-
 /****************************************************************************
  * WebRTC peer connection and data channel
  ****************************************************************************/
@@ -156,7 +152,7 @@ function getUserMedia(argument) {
         });
 }
 
-//建立點對點連線
+//建立點對點連線物件，以及為連線標的創建影像視窗
 function createPeerConnection(isInitiator, config, remotePeer) {
     var video = document.createElement('video');
     video.id = remotePeer;
@@ -240,21 +236,10 @@ function onDataChannelCreated(channel) {
             pTag.appendChild(TextNode);
             //把包好的<p></p>塞進chatBox裡，作為接收者的紀錄
             dataChannelReceive.appendChild(pTag);
+
+
         }
     }
-}
-
-function handleRemoteHangup() {
-    console.log('Session terminated.');
-    stop();
-}
-
-function stop() {
-    isStarted = false;
-    // isAudioMuted = false;
-    // isVideoMuted = false;
-    pc.close();
-    pc = null;
 }
 
 /****************************************************************************
