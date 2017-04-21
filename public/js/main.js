@@ -12,6 +12,7 @@
 //讓所有的資料都透過 TURN 伺服器來轉送。
 //因此需要架設私人伺服器。
 
+
 let configuration = {
     'iceServers': [{
         'url': 'stun:stun.l.google.com:19302'
@@ -19,8 +20,6 @@ let configuration = {
         'url': 'stun:stun.services.mozilla.com'
     }]
 };
-
-let roomURL = document.getElementById('url');
 
 //取得影片區的HTML元素
 let localStream;
@@ -31,9 +30,11 @@ let remoteVideo = {};
 let dataChannelSend = document.getElementById('dataChannelSend');
 let dataChannelReceive = document.getElementById('dataChannelReceive');
 let msgButton = document.querySelector('button#msgButton');
-//擷取相片的解析度
-let photoContextW;
-let photoContextH;
+
+var fileInput = document.getElementById('fileInput');
+fileInput.addEventListener('change', handleFileInputChange, false);
+var downloadAnchor = document.getElementById('download');
+var receiveBuffer = [];
 
 // Attach event handlers
 //在按鈕上，附加事件處理函數
@@ -43,12 +44,8 @@ msgButton.addEventListener('click', sendText);
 //創建房間，如果沒有顯示在URL裡面
 let isInitiator = false;
 let isStarted = false;
-let room = window.location.hash.substring(12);
 //....chat.html 「 #/chat?name= 」 > 共12個位元 > 取自=以後的值
-if (!room) {
-    window.location.hash = '/chat?name=' + randomToken();
-    room = randomToken();
-}
+let room = window.location.hash.substring(12);
 
 /****************************************************************************
  * Signaling server
@@ -60,18 +57,17 @@ let socket = io.connect("https://140.123.175.95:8787");
 let localUserID;
 let connections = {};
 let remoteStream = {};
-let photoChannels = {};
+let fileChannels = {};
 let msgChannels = {};
 
-
-getUserMedia();
-socket.emit('join', room);
+socket.emit('join', getRoom());
 
 
 //加入房間訊息
 socket.on('joined', function(room, clientID) {
     console.log('This peer has joined room: ' + room + ' with client ID ' + clientID);
     localUserID = clientID;
+    getUserMedia();
     socket.emit('newParticipant', clientID, room);
 });
 
@@ -154,11 +150,15 @@ function getUserMedia(argument) {
 
 //建立點對點連線物件，以及為連線標的創建影像視窗
 function createPeerConnection(isInitiator, config, remotePeer) {
-    var video = document.createElement('video');
-    video.id = remotePeer;
-    video.autoPlay = true;
-    document.body.appendChild(video);
-    remoteVideo[remotePeer] = video;
+    //For 李佳怡:
+    //接到另外一個人加入房間的時候，會使用這個function
+    //把他的video tag 創建好 render在畫面上的工作就交給你ㄌ
+    //大概長得像下面的樣子
+    // var video = document.createElement('video');
+    // video.id = remotePeer;
+    // video.autoPlay = true;
+    // document.body.appendChild(video);
+    //remoteVideo[remotePeer] = video;
 
     let peerConn = new RTCPeerConnection(config);
     connections[remotePeer] = peerConn;
@@ -190,25 +190,41 @@ function createPeerConnection(isInitiator, config, remotePeer) {
     if (isInitiator) {
         console.log('Creating Data Channel');
         //建立資料傳送頻道、訊息傳送頻道
-        var photoChannel = peerConn.createDataChannel('photos');
+        var fileChannel = peerConn.createDataChannel('files');
         var msgChannel = peerConn.createDataChannel('messages');
-        photoChannels[remotePeer] = photoChannel;
+        fileChannels[remotePeer] = fileChannel;
         msgChannels[remotePeer] = msgChannel;
 
         //建立成功後，立即處理
-        onDataChannelCreated(photoChannel);
+        onDataChannelCreated(fileChannel);
         onDataChannelCreated(msgChannel);
+
+        //開啟通道後，初始化HTML元素
+        downloadAnchor.textContent = '';
+        downloadAnchor.removeAttribute('download');
+        if (downloadAnchor.href) {
+            URL.revokeObjectURL(downloadAnchor.href);
+            downloadAnchor.removeAttribute('href');
+        }
+
     } else {
         //如果不是開房的，是加入別人的房間
         //如果有連線成功，會接到這個事件
         peerConn.ondatachannel = function(event) {
             console.log('ondatachannel:', event.channel.label);
             //加入別人建立的頻道
-            if (event.channel.label == 'photos') {
-                var photoChannel = event.channel;
-                photoChannels[remotePeer] = photoChannel;
+            if (event.channel.label == 'files') {
+                //開啟通道後，初始化HTML元素
+                downloadAnchor.textContent = '';
+                downloadAnchor.removeAttribute('download');
+                if (downloadAnchor.href) {
+                    URL.revokeObjectURL(downloadAnchor.href);
+                    downloadAnchor.removeAttribute('href');
+                }
+                var fileChannel = event.channel;
+                fileChannels[remotePeer] = fileChannel;
                 console.log('joined channel' + event.channel.label);
-                onDataChannelCreated(photoChannel);
+                onDataChannelCreated(fileChannel);
             } else if (event.channel.label == 'messages') {
                 var msgChannel = event.channel;
                 msgChannels[remotePeer] = msgChannel;
@@ -225,9 +241,23 @@ function onDataChannelCreated(channel) {
     channel.onopen = function() {
         console.log('channel: ' + channel.label + ' is now opened!!!');
     };
-    channel.onmessage = function() {
-        if (channel.label == 'photos') {
-            //暫不做事
+    channel.onmessage = function(event) {
+        if (channel.label == 'files') {
+            console.log(event.data);
+            if (typeof event.data === 'string') {
+                var data = JSON.parse(event.data);
+                var received = new window.Blob(receiveBuffer);
+                receiveBuffer = [];
+                //downloadAnchor是一個HTML<a>
+                downloadAnchor.href = URL.createObjectURL(received); //塞入BLOB檔案網址
+                downloadAnchor.download = data.fileName; //下載後的檔案名稱
+                //HTML<a>顯示的文字
+                downloadAnchor.textContent = 'Click to download \'' + data.fileName + '\' (' + data.fileSize + ' bytes)';
+                //傳好後把它顯示出來
+                downloadAnchor.style.display = 'block';
+            }
+            receiveBuffer.push(event.data); //把資料push進陣列
+
         } else if (channel.label == 'messages') {
             //取得接收到的文字
             let TextNode = document.createTextNode(event.data);
@@ -236,12 +266,35 @@ function onDataChannelCreated(channel) {
             pTag.appendChild(TextNode);
             //把包好的<p></p>塞進chatBox裡，作為接收者的紀錄
             dataChannelReceive.appendChild(pTag);
-
-
         }
     }
 }
 
+function handleFileInputChange() {
+    var file = fileInput.files[0];
+    if (!file) {
+        console.log('No file chosen');
+    } else {
+        sendFile();
+    }
+}
+
+function closeDataChannels() {
+    sendChannel.close();
+    trace('Closed data channel with label: ' + sendChannel.label);
+    if (receiveChannel) {
+        receiveChannel.close();
+        trace('Closed data channel with label: ' + receiveChannel.label);
+    }
+    localConnection.close();
+    remoteConnection.close();
+    localConnection = null;
+    remoteConnection = null;
+    trace('Closed peer connections');
+
+    // re-enable the file select
+    fileInput.disabled = false;
+}
 /****************************************************************************
  * Aux functions, mostly UI-related
  ****************************************************************************/
@@ -268,6 +321,52 @@ function sendText() {
     dataChannelSend.value = '';
 }
 
+function sendFile() {
+    //假設一次上船多個檔案，files[0]指的是第一個傳的檔案
+    //這裡只做單一檔案上傳功能
+    var file = fileInput.files[0];
+    console.log('File is ' + [file.name, file.size, file.type, file.lastModifiedDate].join(', '));
+    downloadAnchor.textContent = ''; //把下載的超連結內容改為空值
+
+    var chunkSize = 16384;
+    //切割檔案的function，並傳入起始點，從頭開始切
+    var sliceFile = (offset) => {
+        //讀取<input>中的檔案
+        var reader = new window.FileReader();
+        //讀取完成時觸發此函數
+        reader.onload = (e) => {
+            //把讀取好的檔案透過fileChannel傳送給遠端使用者
+            for (var id in fileChannels) {
+                //e.target.result是一個ArrayBuffer，長度為:16384bits，把他送給遠端使用者
+                fileChannels[id].send(e.target.result);
+                //如果檔案總大小>0+16384>再呼叫一次sliceFile(0+16384+16384+...)>遞迴
+                if (file.size > offset + e.target.result.byteLength) {
+                    window.setTimeout(sliceFile, 0, offset + chunkSize);
+                } else {
+                    fileChannels[id].send(JSON.stringify({
+                        'fileName': file.name,
+                        'fileSize': file.size,
+                        'fileType': file.type
+                    }))
+                }
+            }
+        };
+        //從檔案開頭，切一塊16384的檔案下來
+        var slice = file.slice(offset, offset + chunkSize);
+        reader.readAsArrayBuffer(slice);
+    };
+    sliceFile(0);
+}
+
 function randomToken() {
     return Math.floor((1 + Math.random()) * 1e16).toString(16).substring(1);
+}
+
+function getRoom() {
+    //如果網址上沒有房名，就是創建房間的人
+    if (!room) {
+        window.location.hash = '/chat?name=' + randomToken();
+        room = randomToken();
+    }
+    return room;
 }

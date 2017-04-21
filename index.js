@@ -19,21 +19,36 @@ server.listen(8787);
 console.log('已啟動伺服器!');
 
 let counter = 0;
+
 app.get('', (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
 })
+
 app.get('https://140.123.175.95:8787/public/chat.html', (req, res) => {
     res.sendFile(__dirname + '/public/chat.html');
 })
 
-app.use(express.static('public'));
+app.get("/userName", (req, res) => {
+    res.send({name:"李佳怡"});
+})
+
+app.get("/userStatus", (req, res) => {
+    res.send({status:"上線中"});
+})
+
+app.get("/userImg", (req, res) => {
+    res.sendFile(__dirname + '/public/src/je.jpg');
+})
+
+//沒有定義路徑，則接收到請求就執行這個函數
+app.use(express.static(__dirname + '/public'));
 
 
 io.on('connection', function(socket) {
     connection[socket.id] = socket;
     console.log("接收到使用者: " + socket.id + " 的連線");
 
-    socket.on('create',function(){
+    socket.on('create', function() {
         console.log('收到創建房間: ' + room + ' 的請求');
         socket.join(room);
         console.log('Client ID ' + socket.id + ' joined room ' + room);
@@ -64,8 +79,8 @@ io.on('connection', function(socket) {
     })
 
     socket.on('disconnect', function() {
-        console.log("使用者: "+ socket.id + " 離開了");
-        socket.broadcast.emit('participantLeft',socket.id);
+        console.log("使用者: " + socket.id + " 離開了");
+        socket.broadcast.emit('participantLeft', socket.id);
     });
 
     socket.on('bye', function() {

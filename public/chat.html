@@ -36,7 +36,6 @@
         <button id="new-window">ayyyyy</button> 
     -->
     <h1>邀請朋友的網址<a id="url"></a></h1>
-
     <div style="float: left; width:300px;">
         <h1>即時影像</h1>
         <video style="border-width: 1px; border-style:solid; 
@@ -44,18 +43,19 @@
         <video style="border-width: 1px; border-style:solid;
         width:300px;" id="remoteVideo" autoplay></video>
     </div>
-
     <div style="float: left; width: 300px;">
         <h1>文字交流</h1>
         <div id="dataChannelReceive"></div>
-        <textarea id="dataChannelSend"></textarea>
+        <textarea id="dataChannelSend">
+        </textarea>
         <div id="buttons">
             <button id="msgButton">Send</button>
+            <input type="file" id="fileInput" name="files">
+            <a id="download"></a>
         </div>
     </div>
-
     <div style="float: left; width: 300px;">
-       <h1>語音辨識功能</h1>
+        <h1>語音辨識功能</h1>
         <div>
             <div id="info">
                 <p id="info_start">
@@ -100,7 +100,6 @@
             </div>
         </div>
     </div>
-
     <div style="float: left; width: 300px;">
         <h1>錄影功能</h1>
         <div style="height: 400px;border-width: 1px; border-style:solid; ">
@@ -113,12 +112,11 @@
             </div>
         </div>
     </div>
-
-
     <script src="/socket.io/socket.io.js"></script>
     <script src="js/lib/adapter.js"></script>
     <script src="js/record.js"></script>
     <script src="js/chromeRecognition.js"></script>
     <script src="js/main.js"></script>
 </body>
+
 </html>
