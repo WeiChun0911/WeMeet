@@ -60,14 +60,14 @@ let remoteStream = {};
 let fileChannels = {};
 let msgChannels = {};
 
+getUserMedia();
 socket.emit('join', getRoom());
 
 
 //加入房間訊息
 socket.on('joined', function(room, clientID) {
     console.log('This peer has joined room: ' + room + ' with client ID ' + clientID);
-    localUserID = clientID;
-    getUserMedia();
+    localUserID = clientID; 
     socket.emit('newParticipant', clientID, room);
 });
 
@@ -154,11 +154,11 @@ function createPeerConnection(isInitiator, config, remotePeer) {
     //接到另外一個人加入房間的時候，會使用這個function
     //把他的video tag 創建好 render在畫面上的工作就交給你ㄌ
     //大概長得像下面的樣子
-    // var video = document.createElement('video');
-    // video.id = remotePeer;
-    // video.autoPlay = true;
-    // document.body.appendChild(video);
-    //remoteVideo[remotePeer] = video;
+    var video = document.createElement('video');
+    video.id = remotePeer;
+    video.autoPlay = true;
+    document.body.appendChild(video);
+    remoteVideo[remotePeer] = video;
 
     let peerConn = new RTCPeerConnection(config);
     connections[remotePeer] = peerConn;

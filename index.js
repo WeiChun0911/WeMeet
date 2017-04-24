@@ -4,21 +4,19 @@
 const express = require('express');
 const app = express();
 const fs = require('fs');
+let User = require('./db.js')
+
 //HTTPS參數
 const option = {
     key: fs.readFileSync('./public/certificate/privatekey.pem'),
     cert: fs.readFileSync('./public/certificate/certificate.pem')
 };
 
-var connection = {};
-
 //對https Server內傳入express的處理物件
 const server = require('https').createServer(option, app);
 const io = require('socket.io')(server);
 server.listen(8787);
 console.log('已啟動伺服器!');
-
-let counter = 0;
 
 app.get('', (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
@@ -42,7 +40,6 @@ app.get("/userImg", (req, res) => {
 
 //沒有定義路徑，則接收到請求就執行這個函數
 app.use(express.static(__dirname + '/public'));
-
 
 io.on('connection', function(socket) {
     connection[socket.id] = socket;
