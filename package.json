@@ -5,6 +5,9 @@
   "description": "WebRTC,Voice2Text",
   "dependencies": {
     "express": "^4.15.2",
+    "fs": "0.0.1-security",
+    "gridfs-stream": "^1.1.1",
+    "mongoose": "^4.9.6",
     "socket.io": "^1.2.0"
   }
 }

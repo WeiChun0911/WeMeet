@@ -26,16 +26,29 @@ app.get('https://140.123.175.95:8787/public/chat.html', (req, res) => {
     res.sendFile(__dirname + '/public/chat.html');
 })
 
-app.get("/userName", (req, res) => {
-    res.send({name:"李佳怡"});
+app.get("/api/db/account", (req, res) => {
+    res.send({
+        username:'帳號名稱',
+        password:'密碼',
+        name:'使用者自訂暱稱',
+        birthday:19950125,
+        email:'電子郵件位址',
+        registerTime:1492939834527
+    });
 })
 
-app.get("/userStatus", (req, res) => {
+app.get("/api/db/onlineList", (req, res) => {
     res.send({status:"上線中"});
 })
 
-app.get("/userImg", (req, res) => {
+app.get("/api/db/sourceList", (req, res) => {
     res.sendFile(__dirname + '/public/src/je.jpg');
+})
+
+app.get("/api/db/test",(req,res)=>{
+    var stream = fs.readFile('public/src/je.jpg',(stream)=>{
+        res.send(stream);
+    });  
 })
 
 //沒有定義路徑，則接收到請求就執行這個函數
