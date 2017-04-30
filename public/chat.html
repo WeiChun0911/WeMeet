@@ -109,13 +109,36 @@
                 <button id="record">Start Recording</button>
                 <button id="play" disabled>Play</button>
                 <button id="download" disabled>Download</button>
+                <button id="upload" onclick='upload()'>upload</button>
             </div>
         </div>
     </div>
+    <div style="float: left; width: 300px;">
+        <h1>註冊功能</h1>
+        <div style="height: 400px;border-width: 1px; border-style:solid; ">
+            <button onclick='a()'>註冊</button>
+        </div>
+    </div>
+    <script>
+    function a() {
+        console.log('onclick');
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", 'https://140.123.175.95:8787/api/db/create/register', true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.send(JSON.stringify({
+            username: '123123132',
+            password: '456456456',
+            name: 'EvilCat',
+            birthday: 19950911,
+            email: 'wewe@gmail.com',
+            registerTime: '1492939834527'
+        }));
+    }
+    </script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="js/lib/adapter.js"></script>
     <script src="js/record.js"></script>
-    <script src="js/chromeRecognition.js"></script>
+    <script src="js/recognition.js"></script>
     <script src="js/main.js"></script>
 </body>
 

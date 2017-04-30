@@ -2,9 +2,14 @@
 
 //回傳一個具有express的library的物件，當作處理request的Callback
 const express = require('express');
+const bodyParser = require("body-parser");
 const app = express();
+app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 const fs = require('fs');
-let User = require('./db.js')
+const db = require('./db.js');
+
+let connection = {};
 
 //HTTPS參數
 const option = {
@@ -18,6 +23,7 @@ const io = require('socket.io')(server);
 server.listen(8787);
 console.log('已啟動伺服器!');
 
+
 app.get('', (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
 })
@@ -26,29 +32,52 @@ app.get('https://140.123.175.95:8787/public/chat.html', (req, res) => {
     res.sendFile(__dirname + '/public/chat.html');
 })
 
-app.get("/api/db/account", (req, res) => {
-    res.send({
-        username:'帳號名稱',
-        password:'密碼',
-        name:'使用者自訂暱稱',
-        birthday:19950125,
-        email:'電子郵件位址',
-        registerTime:1492939834527
+
+//資料庫「查詢」部分
+app.get("/api/db/read/account", (req, res) => {
+    db.Account.find({}, function(err, data) {
+        if (err) throw err;
+        res.send(data);
+    })
+})
+app.get("/api/db/read/onlineList", (req, res) => {
+    db.OnlineList.find({}, function(err, data) {
+        if (err) throw err;
+        res.send(data);
+    })
+})
+app.get("/api/db/read/meetingList", (req, res) => {
+    db.MeetingList.find({}, function(err, data) {
+        if (err) throw err;
+        res.send(data);
+    })
+})
+app.get("/api/db/read/sourceList", (req, res) => {
+    db.SourceList.find({}, function(err, data) {
+        if (err) throw err;
+        res.send(data);
+    })
+})
+
+//資料庫「新增」部分
+app.post("/api/db/create/register", (req, res) => {
+    var { username, password, name, birthday, email, registerTime } = req.body;
+    db.Account.create({
+        username: username,
+        password: password,
+        name: name,
+        birthday: birthday,
+        email: email,
+        registerTime: registerTime
+    },(err,doc)=>{
+    	if(err) console.log(err);
+    	console.log(doc);
     });
 })
 
-app.get("/api/db/onlineList", (req, res) => {
-    res.send({status:"上線中"});
-})
 
-app.get("/api/db/sourceList", (req, res) => {
+app.get("/api/db/test", (req, res) => {
     res.sendFile(__dirname + '/public/src/je.jpg');
-})
-
-app.get("/api/db/test",(req,res)=>{
-    var stream = fs.readFile('public/src/je.jpg',(stream)=>{
-        res.send(stream);
-    });  
 })
 
 //沒有定義路徑，則接收到請求就執行這個函數
@@ -92,6 +121,10 @@ io.on('connection', function(socket) {
         console.log("使用者: " + socket.id + " 離開了");
         socket.broadcast.emit('participantLeft', socket.id);
     });
+
+    socket.on('requestVideoFromUser', function(sender) {
+        console.log('使用者:' + socket.id + '請求了他的錄影BLOB檔');
+    })
 
     socket.on('bye', function() {
         console.log('received bye');

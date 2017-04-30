@@ -2,9 +2,8 @@ var mongoose = require('mongoose');
 var grid = require('gridfs-stream');
 var fs = require('fs');
 mongoose.Promise = global.Promise;
-var conn = mongoose.connect('mongodb://admin:admin@140.123.175.95:9487/admin');
 
-function storeVideoToDB() {
+function storeFileToDB() {
     console.log('db is on!');
     var gfs = grid(conn.db, mongoose.mongo);
 
@@ -16,7 +15,7 @@ function storeVideoToDB() {
     fs.createReadStream('/home/etech/sourcefile.txt').pipe(writestream);
 
     writestream.on('close', function(file) {
-        // do something with `file`
+        // do something with 'file'
         console.log(file.filename + 'Has written To DB');
     });
 }
@@ -29,7 +28,7 @@ function storeVideoToDB() {
 // get: function, defines a custom getter for this property using Object.defineProperty().
 // set: function, defines a custom setter for this property using
 
-var accountSchema = new mongoose.Schema({
+let accountSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     name: { type: String, required: true },
@@ -37,21 +36,33 @@ var accountSchema = new mongoose.Schema({
     email: String,
     registerTime: { type: Number, required: true }
 });
+exports.Account = mongoose.model('Account',accountSchema);
 
-var onlineListSchema = new mongoose.Schema({
+
+let onlineListSchema = new mongoose.Schema({
     onlineTime: { type: Number, required: true }
 });
+exports.OnlineList = mongoose.model('OnlineList',onlineListSchema);
 
-var meetingListSchema = new mongoose.Schema({
+
+let meetingListSchema = new mongoose.Schema({
     hostUID: { type: String, required: true, unique: true },
     memberUID: { type: String, required: true, unique: true },
     startTime: { type: Number, required: true },
     endTime: { type: Number, required: true },
     meetingRecord: { type: String, required: true, unique: true }
 });
-var sourceListSchema = new mongoose.Schema({
+exports.MeetingList = mongoose.model('MeetingList',meetingListSchema);
 
+
+let sourceListSchema = new mongoose.Schema({
+    fileName: { type: String, required: true },
+    fileType: { type: String, required: true },
+    fileBuffer: { type: Buffer, required: true },
+    uploadTime: { type: String, required: true, }
 });
+exports.SourceList = mongoose.model('SourceList',sourceListSchema);
+
 
 //model用來定義操作資料的函數(create/remove/update/find/save...)
-var account = mongoose.model('account', accountSchema);
+// var account = mongoose.model('account', accountSchema);

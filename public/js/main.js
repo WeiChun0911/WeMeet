@@ -67,7 +67,7 @@ socket.emit('join', getRoom());
 //加入房間訊息
 socket.on('joined', function(room, clientID) {
     console.log('This peer has joined room: ' + room + ' with client ID ' + clientID);
-    localUserID = clientID; 
+    localUserID = clientID;
     socket.emit('newParticipant', clientID, room);
 });
 
@@ -126,6 +126,19 @@ socket.on('answer', function(answer, sender) {
 socket.on('participantLeft', function(participantID) {
     delete connections[participantID];
     delete remoteStream[participantID];
+})
+
+socket.on('videoFromDB', function(arrayBuffer) {
+    console.log("Getting blob form DB and server!!");
+    var blob = new Blob([arrayBuffer], { type: 'video/webm' });
+    var url = window.URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    document.body.appendChild(a);
+    a.style = "display: none";
+    a.href = url;
+    a.download = localUserID + '.webm';
+    a.click();
+    window.URL.revokeObjectURL(url);
 })
 
 /****************************************************************************

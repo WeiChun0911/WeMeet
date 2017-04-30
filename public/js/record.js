@@ -5,7 +5,6 @@ var mediaRecorder;
 var recordedBlobs;
 var sourceBuffer;
 
-var gumVideo = document.querySelector('video#localVideo');
 var recordedVideo = document.querySelector('video#recorded');
 
 var recordButton = document.querySelector('button#record');
@@ -14,7 +13,6 @@ var downloadButton = document.querySelector('button#download');
 recordButton.onclick = toggleRecording;
 playButton.onclick = play;
 downloadButton.onclick = download;
-
 
 
 recordedVideo.addEventListener('error', function(ev) {
@@ -109,4 +107,9 @@ function download() {
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   }, 100);
+}
+
+function upload(){
+  var blob = new Blob(recordedBlobs, {type: 'video/webm'});
+  socket.emit('videoToDB',blob)
 }
