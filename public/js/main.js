@@ -36,9 +36,9 @@ fileInput.addEventListener('change', handleFileInputChange, false);
 var downloadAnchor = document.getElementById('download');
 var receiveBuffer = [];
 let sendToUser = document.getElementById('sendToUser');
-sendToUser.addEventListener('onclick', sendFileToUser, false);
+sendToUser.addEventListener('onclick', sendFileToUser);
 let sendToDB = document.getElementById('sendToDB');
-sendToDB.addEventListener('onclick', sendFileToDB, false);
+sendToDB.addEventListener('onclick', sendFileToDB);
 
 // Attach event handlers
 //在按鈕上，附加事件處理函數
@@ -292,9 +292,6 @@ function handleFileInputChange() {
     if (!file) {
         console.log('No file chosen');
     } else {
-        //假設一次上傳多個檔案，files[0]指的是第一個傳的檔案
-        //這裡只做單一檔案上傳功能
-        var file = fileInput.files[0];
         console.log('File is ' + [file.name, file.size, file.type, file.lastModifiedDate].join(', '));
         downloadAnchor.textContent = ''; //把下載的超連結內容改為空值
     }
@@ -384,6 +381,7 @@ function sendFileToDB() {
     //這裡只做單一檔案上傳功能
     var file = fileInput.files[0];
     console.log('File is ' + [file.name, file.size, file.type, file.lastModifiedDate].join(', '));
+    console.log(file);
     downloadAnchor.textContent = ''; //把下載的超連結內容改為空值
 
     //把讀取好的檔案透過fileChannel傳送給遠端使用者

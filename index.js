@@ -28,7 +28,7 @@ app.get('', (req, res) => {
     res.sendFile(__dirname + '/public/index.html');
 })
 
-app.get('https://127.0.0.1:8787/public/chat.html', (req, res) => {
+app.get('https://140.123.175.95:8787/public/chat.html', (req, res) => {
     res.sendFile(__dirname + '/public/chat.html');
 })
 
