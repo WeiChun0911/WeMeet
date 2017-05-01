@@ -35,6 +35,10 @@ var fileInput = document.getElementById('fileInput');
 fileInput.addEventListener('change', handleFileInputChange, false);
 var downloadAnchor = document.getElementById('download');
 var receiveBuffer = [];
+let sendToUser = document.getElementById('sendToUser');
+sendToUser.addEventListener('onclick', sendFileToUser, false);
+let sendToDB = document.getElementById('sendToDB');
+sendToDB.addEventListener('onclick', sendFileToDB, false);
 
 // Attach event handlers
 //在按鈕上，附加事件處理函數
@@ -288,7 +292,11 @@ function handleFileInputChange() {
     if (!file) {
         console.log('No file chosen');
     } else {
-        sendFile();
+        //假設一次上傳多個檔案，files[0]指的是第一個傳的檔案
+        //這裡只做單一檔案上傳功能
+        var file = fileInput.files[0];
+        console.log('File is ' + [file.name, file.size, file.type, file.lastModifiedDate].join(', '));
+        downloadAnchor.textContent = ''; //把下載的超連結內容改為空值
     }
 }
 
@@ -334,12 +342,12 @@ function sendText() {
     dataChannelSend.value = '';
 }
 
-function sendFile() {
-    //假設一次上船多個檔案，files[0]指的是第一個傳的檔案
+function sendFileToUser() {
+    //假設一次上傳多個檔案，files[0]指的是第一個傳的檔案
     //這裡只做單一檔案上傳功能
-    var file = fileInput.files[0];
-    console.log('File is ' + [file.name, file.size, file.type, file.lastModifiedDate].join(', '));
-    downloadAnchor.textContent = ''; //把下載的超連結內容改為空值
+    // file = fileInput.files[0];
+    // console.log('File is ' + [file.name, file.size, file.type, file.lastModifiedDate].join(', '));
+    // downloadAnchor.textContent = ''; //把下載的超連結內容改為空值
 
     var chunkSize = 16384;
     //切割檔案的function，並傳入起始點，從頭開始切
@@ -370,6 +378,22 @@ function sendFile() {
     };
     sliceFile(0);
 }
+
+function sendFileToDB() {
+    //假設一次上傳多個檔案，files[0]指的是第一個傳的檔案
+    //這裡只做單一檔案上傳功能
+    var file = fileInput.files[0];
+    console.log('File is ' + [file.name, file.size, file.type, file.lastModifiedDate].join(', '));
+    downloadAnchor.textContent = ''; //把下載的超連結內容改為空值
+
+    //把讀取好的檔案透過fileChannel傳送給遠端使用者
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", 'https://140.123.175.95:8787/api/db/create/photo', true);
+    xhr.setRequestHeader('Content-Type', file.type);
+    xhr.send(file);
+    console.log(file);
+}
+
 
 function randomToken() {
     return Math.floor((1 + Math.random()) * 1e16).toString(16).substring(1);

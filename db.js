@@ -1,7 +1,9 @@
 var mongoose = require('mongoose');
+var uniqueValidator = require('mongoose-unique-validator');
 var grid = require('gridfs-stream');
 var fs = require('fs');
 mongoose.Promise = global.Promise;
+var conn = mongoose.connect('mongodb://admin:admin@140.123.175.95:9487/main');
 
 function storeFileToDB() {
     console.log('db is on!');
@@ -31,18 +33,20 @@ function storeFileToDB() {
 let accountSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
+    photo:{type:Buffer}
     name: { type: String, required: true },
     birthday: Number,
     email: String,
     registerTime: { type: Number, required: true }
 });
-exports.Account = mongoose.model('Account',accountSchema);
+accountSchema.plugin(uniqueValidator);
+exports.Account = mongoose.model('Account', accountSchema);
 
 
 let onlineListSchema = new mongoose.Schema({
     onlineTime: { type: Number, required: true }
 });
-exports.OnlineList = mongoose.model('OnlineList',onlineListSchema);
+exports.OnlineList = mongoose.model('OnlineList', onlineListSchema);
 
 
 let meetingListSchema = new mongoose.Schema({
@@ -52,7 +56,8 @@ let meetingListSchema = new mongoose.Schema({
     endTime: { type: Number, required: true },
     meetingRecord: { type: String, required: true, unique: true }
 });
-exports.MeetingList = mongoose.model('MeetingList',meetingListSchema);
+meetingListSchema.plugin(uniqueValidator);
+exports.MeetingList = mongoose.model('MeetingList', meetingListSchema);
 
 
 let sourceListSchema = new mongoose.Schema({
@@ -61,7 +66,7 @@ let sourceListSchema = new mongoose.Schema({
     fileBuffer: { type: Buffer, required: true },
     uploadTime: { type: String, required: true, }
 });
-exports.SourceList = mongoose.model('SourceList',sourceListSchema);
+exports.SourceList = mongoose.model('SourceList', sourceListSchema);
 
 
 //model用來定義操作資料的函數(create/remove/update/find/save...)
