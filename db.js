@@ -33,7 +33,7 @@ function storeFileToDB() {
 let accountSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    photo:{type:Buffer}
+    photo:{type:Buffer},
     name: { type: String, required: true },
     birthday: Number,
     email: String,

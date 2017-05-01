@@ -69,15 +69,18 @@ app.post("/api/db/create/register", (req, res) => {
         birthday: birthday,
         email: email,
         registerTime: registerTime
-    },(err,doc)=>{
+    },(err,data)=>{
     	if(err) console.log(err);
-    	console.log(doc);
+    	console.log(data);
     });
 })
 
 app.post("/api/db/create/photo",(req,res)=>{
     var {photo} = req.body;
-    db.Account.findOneAndUpdate({username:'123123132'},{photo:photo});
+    db.Account.findOneAndUpdate({username:'123123132'},{photo:photo},(err,data)=>{
+    	if(err) console.log(err);
+    	console.log(data);
+    });
 })
 
 app.get("/api/db/test", (req, res) => {
