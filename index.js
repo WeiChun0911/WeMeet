@@ -61,6 +61,7 @@ app.get("/api/db/read/sourceList", (req, res) => {
 
 //資料庫「新增」部分
 app.post("/api/db/create/register", (req, res) => {
+    console.log(req);
     var { username, password, name, birthday, email, registerTime } = req.body;
     db.Account.create({
         username: username,
@@ -69,18 +70,18 @@ app.post("/api/db/create/register", (req, res) => {
         birthday: birthday,
         email: email,
         registerTime: registerTime
-    },(err,data)=>{
-    	if(err) console.log(err);
-    	console.log(data);
+    }, (err, data) => {
+        if (err) console.log(err);
+        console.log(data);
     });
 })
 
-app.post("/api/db/create/photo",(req,res)=>{
-    var {photo} = req.body;
-    db.Account.findOneAndUpdate({username:'123123132'},{photo:photo},(err,data)=>{
-    	if(err) console.log(err);
-    	console.log(data);
+app.post("/api/db/create/photo", (req, res) => {
+    var {data} = req.body;
+    db.Account.update({ username: '123123132' }, { username: "FUCKME" }, (err, data) => {
+        if (err) console.log(err);
     });
+    res.send(data);
 })
 
 app.get("/api/db/test", (req, res) => {
@@ -128,6 +129,11 @@ io.on('connection', function(socket) {
         console.log("使用者: " + socket.id + " 離開了");
         socket.broadcast.emit('participantLeft', socket.id);
     });
+
+    socket.on('videoToDB', function(blob) {
+        console.log(`使用者: ${socket.id} 請求將其錄影檔案: ${blob} 傳進資料庫`);
+        //資料庫處理的部分
+    })
 
     socket.on('requestVideoFromUser', function(sender) {
         console.log('使用者:' + socket.id + '請求了他的錄影BLOB檔');

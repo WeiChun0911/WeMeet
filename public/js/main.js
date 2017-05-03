@@ -32,13 +32,13 @@ let dataChannelReceive = document.getElementById('dataChannelReceive');
 let msgButton = document.querySelector('button#msgButton');
 
 var fileInput = document.getElementById('fileInput');
-fileInput.addEventListener('change', handleFileInputChange, false);
+//fileInput.addEventListener('change', handleFileInputChange, false);
 var downloadAnchor = document.getElementById('download');
 var receiveBuffer = [];
 let sendToUser = document.getElementById('sendToUser');
-sendToUser.addEventListener('onclick', sendFileToUser);
+sendToUser.addEventListener('click', sendFileToUser);
 let sendToDB = document.getElementById('sendToDB');
-sendToDB.addEventListener('onclick', sendFileToDB);
+sendToDB.addEventListener('click', sendFileToDB);
 
 // Attach event handlers
 //在按鈕上，附加事件處理函數
@@ -273,6 +273,7 @@ function onDataChannelCreated(channel) {
                 //傳好後把它顯示出來
                 downloadAnchor.style.display = 'block';
             }
+            //把每個ArrayBuffer都存在同一個陣列裡
             receiveBuffer.push(event.data); //把資料push進陣列
 
         } else if (channel.label == 'messages') {
@@ -287,15 +288,15 @@ function onDataChannelCreated(channel) {
     }
 }
 
-function handleFileInputChange() {
-    var file = fileInput.files[0];
-    if (!file) {
-        console.log('No file chosen');
-    } else {
-        console.log('File is ' + [file.name, file.size, file.type, file.lastModifiedDate].join(', '));
-        downloadAnchor.textContent = ''; //把下載的超連結內容改為空值
-    }
-}
+// function handleFileInputChange() {
+//     let file = fileInput.files[0];
+//     if (!file) {
+//         console.log('No file chosen');
+//     } else {
+//         console.log('File is ' + [file.name, file.size, file.type, file.lastModifiedDate].join(', '));
+//         downloadAnchor.textContent = ''; //把下載的超連結內容改為空值
+//     }
+// }
 
 function closeDataChannels() {
     sendChannel.close();
@@ -340,11 +341,13 @@ function sendText() {
 }
 
 function sendFileToUser() {
+    //這個功能是直接將檔案廣播給房內的人，沒有存進資料庫
     //假設一次上傳多個檔案，files[0]指的是第一個傳的檔案
-    //這裡只做單一檔案上傳功能
-    // file = fileInput.files[0];
-    // console.log('File is ' + [file.name, file.size, file.type, file.lastModifiedDate].join(', '));
-    // downloadAnchor.textContent = ''; //把下載的超連結內容改為空值
+    //這裡暫時只做單一檔案上傳功能
+    //webrtc的data channel一次最多只能傳送16*1024Bytes的檔案
+    let file = fileInput.files[0];
+    console.log('File is ' + [file.name, file.size, file.type, file.lastModifiedDate].join(', '));
+    downloadAnchor.textContent = ''; //把下載的超連結內容改為空值(初始化)
 
     var chunkSize = 16384;
     //切割檔案的function，並傳入起始點，從頭開始切
@@ -353,9 +356,9 @@ function sendFileToUser() {
         var reader = new window.FileReader();
         //讀取完成時觸發此函數
         reader.onload = (e) => {
-            //把讀取好的檔案透過fileChannel傳送給遠端使用者
+            //把讀取好的檔案透過fileChannel傳送給「所有」遠端使用者
             for (var id in fileChannels) {
-                //e.target.result是一個ArrayBuffer，長度為:16384bits，把他送給遠端使用者
+                //e.target.result是一個ArrayBuffer，長度為:16384bytes，把他送給遠端使用者
                 fileChannels[id].send(e.target.result);
                 //如果檔案總大小>0+16384>再呼叫一次sliceFile(0+16384+16384+...)>遞迴
                 if (file.size > offset + e.target.result.byteLength) {
@@ -379,17 +382,26 @@ function sendFileToUser() {
 function sendFileToDB() {
     //假設一次上傳多個檔案，files[0]指的是第一個傳的檔案
     //這裡只做單一檔案上傳功能
-    var file = fileInput.files[0];
+    let file = fileInput.files[0];
     console.log('File is ' + [file.name, file.size, file.type, file.lastModifiedDate].join(', '));
-    console.log(file);
     downloadAnchor.textContent = ''; //把下載的超連結內容改為空值
-
-    //把讀取好的檔案透過fileChannel傳送給遠端使用者
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", 'https://140.123.175.95:8787/api/db/create/photo', true);
-    xhr.setRequestHeader('Content-Type', file.type);
-    xhr.send(file);
-    console.log(file);
+    var reader = new window.FileReader();
+    reader.onload = (e) => {
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "https://140.123.175.95:8787/api/db/create/photo", true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.send(JSON.stringify({
+            "data": e.target.result
+        }));
+        xhr.onload = () => {
+            if (xhr.readyState === xhr.DONE) {
+                if (xhr.status === 200) {
+                    console.log(xhr.response);
+                }
+            }
+        }
+    }
+    reader.readAsBinaryString(file);
 }
 
 
