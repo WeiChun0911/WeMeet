@@ -42,13 +42,13 @@ let accountSchema = new mongoose.Schema({
     registerTime: { type: Number, required: true }
 });
 accountSchema.plugin(uniqueValidator);
-exports.Account = mongoose.model('Account', accountSchema);
+exports.Account = conn.model('Account', accountSchema);
 
 
 let onlineListSchema = new mongoose.Schema({
     onlineTime: { type: Number, required: true }
 });
-exports.OnlineList = mongoose.model('OnlineList', onlineListSchema);
+exports.OnlineList = conn.model('OnlineList', onlineListSchema);
 
 
 let meetingListSchema = new mongoose.Schema({
@@ -59,7 +59,7 @@ let meetingListSchema = new mongoose.Schema({
     meetingRecord: { type: String, required: true, unique: true }
 });
 meetingListSchema.plugin(uniqueValidator);
-exports.MeetingList = mongoose.model('MeetingList', meetingListSchema);
+exports.MeetingList = conn.model('MeetingList', meetingListSchema);
 
 
 let sourceListSchema = new mongoose.Schema({
@@ -68,7 +68,7 @@ let sourceListSchema = new mongoose.Schema({
     fileBuffer: { type: Buffer, required: true },
     uploadTime: { type: String, required: true, }
 });
-exports.SourceList = mongoose.model('SourceList', sourceListSchema);
+exports.SourceList = conn.model('SourceList', sourceListSchema);
 
 
 //model用來定義操作資料的函數(create/remove/update/find/save...)

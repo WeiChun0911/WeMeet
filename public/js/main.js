@@ -288,16 +288,6 @@ function onDataChannelCreated(channel) {
     }
 }
 
-// function handleFileInputChange() {
-//     let file = fileInput.files[0];
-//     if (!file) {
-//         console.log('No file chosen');
-//     } else {
-//         console.log('File is ' + [file.name, file.size, file.type, file.lastModifiedDate].join(', '));
-//         downloadAnchor.textContent = ''; //把下載的超連結內容改為空值
-//     }
-// }
-
 function closeDataChannels() {
     sendChannel.close();
     trace('Closed data channel with label: ' + sendChannel.label);
@@ -383,6 +373,7 @@ function sendFileToDB() {
     //假設一次上傳多個檔案，files[0]指的是第一個傳的檔案
     //這裡只做單一檔案上傳功能
     let file = fileInput.files[0];
+    console.log(file);
     console.log('File is ' + [file.name, file.size, file.type, file.lastModifiedDate].join(', '));
     downloadAnchor.textContent = ''; //把下載的超連結內容改為空值
     var reader = new window.FileReader();
@@ -391,17 +382,11 @@ function sendFileToDB() {
         xhr.open("POST", "https://140.123.175.95:8787/api/db/create/photo", true);
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.send(JSON.stringify({
-            "data": e.target.result
+            id: localUserID,
+            data: e.target.result
         }));
-        xhr.onload = () => {
-            if (xhr.readyState === xhr.DONE) {
-                if (xhr.status === 200) {
-                    console.log(xhr.response);
-                }
-            }
-        }
     }
-    reader.readAsBinaryString(file);
+    reader.readAsDataURL(file);
 }
 
 

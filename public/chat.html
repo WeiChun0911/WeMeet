@@ -123,12 +123,11 @@
     </div>
     <script>
     function a() {
-        console.log('onclick');
         var xhr = new XMLHttpRequest();
         xhr.open("POST", 'https://140.123.175.95:8787/api/db/create/register', true);
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.send(JSON.stringify({
-            username: '123123132',
+            username: 'test',
             password: '456456456',
             name: 'EvilCat',
             birthday: 19950911,

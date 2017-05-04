@@ -4,11 +4,11 @@
 const express = require('express');
 const bodyParser = require("body-parser");
 const app = express();
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ type: 'image/*', extended: false, limit: '50mb' }));
+app.use(bodyParser.json({ type: 'application/*', limit: '50mb' }));
+app.use(bodyParser.text({ type: 'text/*' }));
 const fs = require('fs');
 const db = require('./db.js');
-
 let connection = {};
 
 //HTTPS參數
@@ -61,7 +61,6 @@ app.get("/api/db/read/sourceList", (req, res) => {
 
 //資料庫「新增」部分
 app.post("/api/db/create/register", (req, res) => {
-    console.log(req);
     var { username, password, name, birthday, email, registerTime } = req.body;
     db.Account.create({
         username: username,
@@ -70,18 +69,17 @@ app.post("/api/db/create/register", (req, res) => {
         birthday: birthday,
         email: email,
         registerTime: registerTime
-    }, (err, data) => {
+    }, function(err, data) {
         if (err) console.log(err);
         console.log(data);
     });
 })
 
 app.post("/api/db/create/photo", (req, res) => {
-    var {data} = req.body;
-    db.Account.update({ username: '123123132' }, { username: "FUCKME" }, (err, data) => {
+    db.Account.findOneAndUpdate({ username: 'change' }, { photo: req.body.data }, (err, data) => {
         if (err) console.log(err);
+        console.log('photo success');
     });
-    res.send(data);
 })
 
 app.get("/api/db/test", (req, res) => {
