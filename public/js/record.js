@@ -1,115 +1,111 @@
-var mediaSource = new MediaSource();
+'use strict';
 
-mediaSource.addEventListener('sourceopen', handleSourceOpen, false);
-var mediaRecorder;
-var recordedBlobs;
-var sourceBuffer;
+let Recorder = {　　　　
+    createNew: (source) => {　　　　　　
+        let recorder = {};　　　　　
+        let mediaRecorder;
+        let recordedBlobs;
+        let sourceBuffer;
+        let isRecording = false;
+        let { mediaSource, recordedVideo } = source;
 
-var recordedVideo = document.querySelector('video#recorded');
+        let handleSourceOpen = () => {
+            sourceBuffer = mediaSource.addSourceBuffer('video/webm; codecs="vp8"');
+            console.log('Source buffer: ', sourceBuffer);
+        };
 
-var recordButton = document.querySelector('button#record');
-var playButton = document.querySelector('button#play');
-var downloadButton = document.querySelector('button#download');
-recordButton.onclick = toggleRecording;
-playButton.onclick = play;
-downloadButton.onclick = download;
+        mediaSource.addEventListener('sourceopen', handleSourceOpen, false);
 
+        let handleDataAvailable = (event) => {
+            if (event.data && event.data.size > 0) {
+                recordedBlobs.push(event.data);
+            }
+        };
 
-recordedVideo.addEventListener('error', function(ev) {
-  console.error('MediaRecording.recordedMedia.error()');
-  alert('Your browser can not play\n\n' + recordedVideo.src
-    + '\n\n media clip. event: ' + JSON.stringify(ev));
-}, true);
+        let handleStop = (event) => {
+            console.log('Recorder stopped: ', event);
+        };
 
-function handleSourceOpen(event) {
-  console.log('MediaSource opened');
-  sourceBuffer = mediaSource.addSourceBuffer('video/webm; codecs="vp8"');
-  console.log('Source buffer: ', sourceBuffer);
-}
+        recorder.toggleButtonOnclick = () => {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        };
 
-function handleDataAvailable(event) {
-  if (event.data && event.data.size > 0) {
-    recordedBlobs.push(event.data);
-  }
-}
+        // The nested try blocks will be simplified when Chrome 47 moves to Stable
+        let startRecording = () => {
+            isRecording = true;
+            let options = { mimeType: 'video/webm' };
+            recordedBlobs = [];
+            try {
+                mediaRecorder = new MediaRecorder(window.stream, options);
+            } catch (e0) {
+                console.log('Unable to create MediaRecorder with options Object: ', e0);
+                try {
+                    options = { mimeType: 'video/webm,codecs=vp9' };
+                    mediaRecorder = new MediaRecorder(window.stream, options);
+                } catch (e1) {
+                    console.log('Unable to create MediaRecorder with options Object: ', e1);
+                    try {
+                        options = 'video/vp8'; // Chrome 47
+                        mediaRecorder = new MediaRecorder(window.stream, options);
+                    } catch (e2) {
+                        alert('MediaRecorder is not supported by this browser.\n\n' +
+                            'Try Firefox 29 or later, or Chrome 47 or later, with Enable experimental Web Platform features enabled from chrome://flags.');
+                        console.error('Exception while creating MediaRecorder:', e2);
+                        return;
+                    }
+                }
+            }
+            console.log('Created MediaRecorder', mediaRecorder, 'with options', options);
+            mediaRecorder.onstop = handleStop;
+            mediaRecorder.ondataavailable = handleDataAvailable;
+            mediaRecorder.start(10); // collect 10ms of data
+            console.log('MediaRecorder started', mediaRecorder);
+        };
 
-function handleStop(event) {
-  console.log('Recorder stopped: ', event);
-}
+        let stopRecording = () => {
+            isRecording = false;
+            mediaRecorder.stop();
+            recordedVideo.controls = true;
+        };
 
-function toggleRecording() {
-  if (recordButton.textContent === 'Start Recording') {
-    startRecording();
-  } else {
-    stopRecording();
-    recordButton.textContent = 'Start Recording';
-    playButton.disabled = false;
-    downloadButton.disabled = false;
-  }
-}
+        recorder.playButtonOnclick = (callback) => {
+            let superBuffer = new Blob(recordedBlobs, { type: 'video/webm' });
+            callback(window.URL.createObjectURL(superBuffer));
+        };
 
-// The nested try blocks will be simplified when Chrome 47 moves to Stable
-function startRecording() {
-  var options = {mimeType: 'video/webm'};
-  recordedBlobs = [];
-  try {
-    mediaRecorder = new MediaRecorder(window.stream, options);
-  } catch (e0) {
-    console.log('Unable to create MediaRecorder with options Object: ', e0);
-    try {
-      options = {mimeType: 'video/webm,codecs=vp9'};
-      mediaRecorder = new MediaRecorder(window.stream, options);
-    } catch (e1) {
-      console.log('Unable to create MediaRecorder with options Object: ', e1);
-      try {
-        options = 'video/vp8'; // Chrome 47
-        mediaRecorder = new MediaRecorder(window.stream, options);
-      } catch (e2) {
-        alert('MediaRecorder is not supported by this browser.\n\n' +
-            'Try Firefox 29 or later, or Chrome 47 or later, with Enable experimental Web Platform features enabled from chrome://flags.');
-        console.error('Exception while creating MediaRecorder:', e2);
-        return;
-      }
-    }
-  }
-  console.log('Created MediaRecorder', mediaRecorder, 'with options', options);
-  recordButton.textContent = 'Stop Recording';
-  playButton.disabled = true;
-  downloadButton.disabled = true;
-  mediaRecorder.onstop = handleStop;
-  mediaRecorder.ondataavailable = handleDataAvailable;
-  mediaRecorder.start(10); // collect 10ms of data
-  console.log('MediaRecorder started', mediaRecorder);
-}
+        recorder.downloadButtonOnclick = () => {
+            let blob = new Blob(recordedBlobs, { type: 'video/webm' });
+            let url = window.URL.createObjectURL(blob);
+            let a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            let d = new Date();
+            d = d.getFullYear() + "-" + ('0' + (d.getMonth() + 1)).slice(-2) + "-" + ('0' + d.getDate()).slice(-2);
+            a.download = d + '.webm';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }, 100);
+        };
 
-function stopRecording() {
-  mediaRecorder.stop();
-  console.log('Recorded Blobs: ', recordedBlobs);
-  recordedVideo.controls = true;
-}
+        recorder.uploadButtonOnclick = (callback) => {
+            let blob = new Blob(recordedBlobs, { type: 'video/webm' });
+            var xhr = new XMLHttpRequest();
+            xhr.open("POST", 'https://140.123.175.95:8787/api/db/create/register', true);
+            xhr.setRequestHeader('Content-Type', 'application/json');
+            xhr.send(JSON.stringify({
+                video: blob
+            }));
+            callback();
+        };
+        return recorder;　　　
+    }　　
+};
 
-function play() {
-  var superBuffer = new Blob(recordedBlobs, {type: 'video/webm'});
-  recordedVideo.src = window.URL.createObjectURL(superBuffer);
-  console.log(recordedVideo.src);
-}
-
-function download() {
-  var blob = new Blob(recordedBlobs, {type: 'video/webm'});
-  var url = window.URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.style.display = 'none';
-  a.href = url;
-  a.download = 'test.webm';
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(function() {
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  }, 100);
-}
-
-function upload(){
-  var blob = new Blob(recordedBlobs, {type: 'video/webm'});
-  socket.emit('videoToDB',blob)
-}
+module.exports = Recorder;

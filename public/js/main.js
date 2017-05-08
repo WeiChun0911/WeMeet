@@ -285,25 +285,25 @@ function onDataChannelCreated(channel) {
             //把包好的<p></p>塞進chatBox裡，作為接收者的紀錄
             dataChannelReceive.appendChild(pTag);
         }
-    }
+    };
 }
 
-function closeDataChannels() {
-    sendChannel.close();
-    trace('Closed data channel with label: ' + sendChannel.label);
-    if (receiveChannel) {
-        receiveChannel.close();
-        trace('Closed data channel with label: ' + receiveChannel.label);
-    }
-    localConnection.close();
-    remoteConnection.close();
-    localConnection = null;
-    remoteConnection = null;
-    trace('Closed peer connections');
+// function closeDataChannels() {
+//     sendChannel.close();
+//     trace('Closed data channel with label: ' + sendChannel.label);
+//     if (receiveChannel) {
+//         receiveChannel.close();
+//         trace('Closed data channel with label: ' + receiveChannel.label);
+//     }
+//     localConnection.close();
+//     remoteConnection.close();
+//     localConnection = null;
+//     remoteConnection = null;
+//     trace('Closed peer connections');
 
-    // re-enable the file select
-    fileInput.disabled = false;
-}
+//     // re-enable the file select
+//     fileInput.disabled = false;
+// }
 /****************************************************************************
  * Aux functions, mostly UI-related
  ****************************************************************************/
@@ -385,7 +385,7 @@ function sendFileToDB() {
             id: localUserID,
             data: e.target.result
         }));
-    }
+    };
     reader.readAsDataURL(file);
 }
 
