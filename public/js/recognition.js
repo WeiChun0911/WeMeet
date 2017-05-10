@@ -84,6 +84,7 @@ let Recognition = {
         let recognizer = {};
         //模組接口的需求:Select選單物件、中途判定之文字輸出口、最終結果文字輸出口
         let { select_language, select_dialect } = htmlObj;
+
         let final_transcript = '';
         let recognizing = false;
         let ignore_onend;
@@ -118,24 +119,6 @@ let Recognition = {
             ignore_onend = false;
             start_timestamp = event.timeStamp;
         };
-
-        let updateCountry = () => {
-            for (let i = select_dialect.options.length - 1; i >= 0; i--) {
-                select_dialect.remove(i);
-            }
-            let list = langs[select_language.selectedIndex];
-            for (let i = 1; i < list.length; i++) {
-                select_dialect.options.add(new Option(list[i][1], list[i][0]));
-            }
-            //把沒選到的子選單的選項隱藏掉
-            select_dialect.style.visibility = list[1].length == 1 ? 'hidden' : 'visible';
-        };
-
-        //預設為中文
-        select_language.selectedIndex = 36;
-        updateCountry();
-        //預設為台灣
-        select_dialect.selectedIndex = 2;
 
         recognition.onstart = () => {
             recognizing = true;
