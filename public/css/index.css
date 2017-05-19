@@ -1,0 +1,255 @@
+.container{
+  height: 100%;
+}
+
+  .logo
+  {
+     padding-bottom: 3%;
+  }
+  
+.logo_choose
+{
+    padding-bottom: 3%;
+}
+
+.login_bottom
+{
+    padding-top: 1%;
+    width:400px;
+    border-top: 1px white ;
+    border-top-style:solid ;
+    margin:0px auto;
+    color:#fff;
+}
+
+
+  img
+    {
+      width:30%;
+      height:35%;
+    }
+
+    .form
+    {
+    margin:0px auto;
+    padding-bottom:8%;
+    width:300px;
+    height:200px;
+    opacity: 0.9;
+    background-color:#fff;
+    box-shadow: 2px 2px 5px #000; /* 陰影 */
+    text-align:center; /* 置中 */
+    padding:10px 40px; 
+    border-radius:10px;
+    }
+
+      .form1
+    {
+    margin:0px auto;
+    padding-bottom:8%;
+    width:300px;
+    height:350px;
+    opacity: 0.9;
+    background-color:#fff;
+    box-shadow: 2px 2px 5px #000; /* 陰影 */
+    text-align:center; /* 置中 */
+    padding:10px 40px; 
+    border-radius:10px;
+    }
+
+    .button1
+    {
+      margin:0px auto;
+      width:150px;
+      height:20px;
+      background-color:#fff;
+      box-shadow: 2px 2px 5px #000; /* 陰影 */
+      text-align:center; /* 置中 */
+      padding:10px 40px; 
+      border-radius:10px;
+    }
+
+    .button1: hover
+    {
+      
+    }
+
+    #button3{
+      color:#91d524;
+      font-weight:bold;
+    }
+
+
+.myButton {
+	-moz-box-shadow:inset 0px 1px 0px 0px #3e7327;
+	-webkit-box-shadow:inset 0px 1px 0px 0px #3e7327;
+	box-shadow:inset 0px 1px 0px 0px #3e7327;
+	background:-webkit-gradient(linear, left top, left bottom, color-stop(0.05, #77b55a), color-stop(1, #72b352));
+	background:-moz-linear-gradient(top, #77b55a 5%, #72b352 100%);
+	background:-webkit-linear-gradient(top, #77b55a 5%, #72b352 100%);
+	background:-o-linear-gradient(top, #77b55a 5%, #72b352 100%);
+	background:-ms-linear-gradient(top, #77b55a 5%, #72b352 100%);
+	background:linear-gradient(to bottom, #77b55a 5%, #72b352 100%);
+	filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#77b55a', endColorstr='#72b352',GradientType=0);
+	background-color:#77b55a;
+	-moz-border-radius:5px;
+	-webkit-border-radius:5px;
+	border-radius:5px;
+	display:inline-block;
+	cursor:pointer;
+	color:#ffffff;
+	font-family:Arial;
+	font-size:14px;
+	padding:6px 17px;
+	text-decoration:none;
+	text-shadow:0px 1px 0px #5b8a3c;
+}
+.myButton:hover {
+	background:-webkit-gradient(linear, left top, left bottom, color-stop(0.05, #72b352), color-stop(1, #77b55a));
+	background:-moz-linear-gradient(top, #72b352 5%, #77b55a 100%);
+	background:-webkit-linear-gradient(top, #72b352 5%, #77b55a 100%);
+	background:-o-linear-gradient(top, #72b352 5%, #77b55a 100%);
+	background:-ms-linear-gradient(top, #72b352 5%, #77b55a 100%);
+	background:linear-gradient(to bottom, #72b352 5%, #77b55a 100%);
+	filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#72b352', endColorstr='#77b55a',GradientType=0);
+	background-color:#72b352;
+}
+.myButton:active {
+	position:relative;
+	top:1px;
+}
+
+#Indexlogo{
+  width: 100%;
+  float: center;
+}
+
+.inputName{
+  margin-top: -1%;
+  float: center;
+}
+
+#index_go{
+  background-image: url('../img/index_go.png');
+  width: 30%;
+  float: center;
+}
+
+#indexgo{
+  width:10%;
+}
+
+.ChatList{
+  width:30%;
+  height: 500px;
+  margin-top: 5%;
+  float:left;
+  background-color: #3f1440;
+  opacity: 0.9;
+}
+
+.Index{
+  width:50%;
+  margin-left: 5%;
+  margin-top: 5%;
+  float: left;
+}
+
+#chatlist_text{
+  margin-top:3%;
+  margin-bottom:3%;
+  font-size: 150%;
+}
+
+#chatlist_online{
+  width:95%;
+  height: 360px;
+  overflow: scroll;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+#roomProp{
+  margin-left:2%;
+  width: 95%;
+  height: 63px;
+}
+
+#roomProp:hover{
+  background-color: #612062;
+}
+
+
+#circle3 {
+  width: 50px;
+  height: 50px;
+  padding: 1px;
+  border-color: #91d524;
+  border-style: solid;
+  float: left;
+  border-width: 2px;
+  margin-right: 5%;
+  border-radius: 50px;
+  margin-top: 1%;
+  margin-left: 5%;
+}
+
+#friend_image {
+  width: 50px;
+  height: 50px;
+  margin-top: -1%
+}
+
+#room_name{
+  color: white;
+  font-size: 160%;
+  line-height: 230%;
+  text-align: left;
+}
+
+#AddRoom{
+  width: 95%;
+  margin: 3%;
+  float: left;
+}
+
+#AddInput{
+  width:85%;
+}
+
+#Addgo{
+  width:10%;
+  float:left;
+  margin-left: 3%;
+  margin-top: 2.5%;
+}
+
+#Addinputsyle{
+  background-color: yellow;
+}
+
+#Addtext{
+  float: left;
+  
+  margin-bottom: 1%;
+}
+
+.Addinputsyle{
+  width:95%;
+  height: 45px;
+  float:left;
+  background-color: #612062;
+  color: white;
+  padding: 12px 20px;
+  box-sizing: border-box;
+  border: none;
+  border-radius: 4px;
+  -webkit-transition: 0.5s;
+  transition: 1s;
+  font-size: 20px;
+  outline: none;
+}
+
+
+
+

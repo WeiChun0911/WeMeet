@@ -1,28 +1,52 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html>
 <head>
-    <meta charset="UTF-8">
-    <link rel="icon" type="image/png" href="src/favicon.png">
-    <title>Homepage</title>
+    <meta charset="utf-8" />
+    <title>Wemeet－多人雲端會議系統</title>
+    <link rel="stylesheet" type="text/css" href="/css/main.css" />
+    <link rel="stylesheet" type="text/css" href="/css/ai.css" />
+    <link rel="stylesheet" type="text/css" href="/css/hoshi.css" />
+    <link rel="stylesheet" type="text/css" href="/css/chat.css" />
+    <link rel="stylesheet" type="text/css" href="/css/meet.css" />
+    <link rel="stylesheet" type="text/css" href="/css/record.css">
+    <link rel="stylesheet" type="text/css" href="/css/index.css">
 </head>
 
 <body>
-    <div>
-        <button onclick="location.href='./chat.html#/chatroom'">Create Room</button>
-    </div>
+    <div id="app" ></div>
+    <script>(function() {
+        if (!String.prototype.trim) {
+            (function() {
+                // Make sure we trim BOM and NBSP
+                var rtrim = /^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g;
+                String.prototype.trim = function() {
+                    return this.replace(rtrim, '');
+                };
+            })();
+        }
 
-    <div>
-        房號:
-        <input id="roomName" type="text" value="">
-        <button onclick="start()">Join Room</button>
-    </div>
+        [].slice.call(document.querySelectorAll('input.input__field')).forEach(function(inputEl) {
+            // in case the input is already filled..
+            if (inputEl.value.trim() !== '') {
+                classie.add(inputEl.parentNode, 'input--filled');
+            }
 
-    <script>
-    function start() {
-        location.href = "./chat.html#/chat?name=" + document.getElementById("roomName").value;
-    }
-    </script>
+            // events:
+            inputEl.addEventListener('focus', onInputFocus);
+            inputEl.addEventListener('blur', onInputBlur);
+        });
+
+        function onInputFocus(ev) {
+            classie.add(ev.target.parentNode, 'input--filled');
+        }
+
+        function onInputBlur(ev) {
+            if (ev.target.value.trim() === '') {
+                classie.remove(ev.target.parentNode, 'input--filled');
+            }
+        }})();</script>
+    <script src="/bundle.js"></script>
+
 </body>
 
 </html>

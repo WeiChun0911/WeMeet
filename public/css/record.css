@@ -1,0 +1,20 @@
+#meet_list{
+  margin-left: 3%;
+  margin-top: 2% ; 
+  width: 95%;
+  height: 500px;
+  color: black;
+  float: left;
+  overflow: scroll;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+#list {
+  background-color: white;
+  width: 90%;
+  margin-left: 3%;
+  margin-top: 3%;
+  float: left;
+  text-align: left;
+}
