@@ -30,7 +30,6 @@ window.onbeforeunload = function() {
 
 class Meeting extends React.Component {
     constructor(props) {
-
         super(props);
         this.state = MeetingStore.getState();
         this.onChange = this.onChange.bind(this);

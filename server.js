@@ -4,27 +4,35 @@
 const express = require('express');
 const bodyParser = require("body-parser");
 const app = express();
-app.use(bodyParser.urlencoded({ type: 'image/*', extended: false, limit: '50mb' }));
-app.use(bodyParser.json({ type: 'application/*', limit: '50mb' }));
-app.use(bodyParser.text({ type: 'text/plain' }));
+app.use(bodyParser.urlencoded({
+    type: 'image/*',
+    extended: false,
+    limit: '50mb'
+}));
+app.use(bodyParser.json({
+    type: 'application/*',
+    limit: '50mb'
+}));
+app.use(bodyParser.text({
+    type: 'text/plain'
+}));
 const fs = require('fs');
-const db = require('./app/lib/db.js');
+//const db = require('./app/lib/db.js');
+
 let roomList = [];
 let userInRoom = {};
 let onlineUser = {}; //在線用戶
-let onlineCount = 0; //在線用戶人數
 // let fakeName = {};
 
 
 //HTTPS參數
-
-const option = {
-    key: fs.readFileSync('./public/certificate/privatekey.pem'),
-    cert: fs.readFileSync('./public/certificate/certificate.pem')
-};
+// const option = {
+//     key: fs.readFileSync('./public/certificate/privatekey.pem'),
+//     cert: fs.readFileSync('./public/certificate/certificate.pem')
+// };
 
 //對https Server內傳入express的處理物件
-const server = require('https').createServer(option, app);
+const server = require('http').createServer(app);
 const io = require('socket.io')(server);
 server.listen(8787);
 console.log('已啟動伺服器!');
@@ -100,7 +108,7 @@ io.on('connection', function(socket) {
         if (!roomList.includes(room)) {
             //將房間加入"房間"列表
             roomList.push(room);
-            //console.log(roomList, '已經有加ㄌ喔!');
+        //console.log(roomList, '已經有加ㄌ喔!');
         }
         //將使用者加入"房間-使用者"列表中
         if (!userInRoom[room]) {
@@ -113,7 +121,7 @@ io.on('connection', function(socket) {
         socket.emit('newRoom', roomList);
         socket.broadcast.emit('userList', userInRoom[room]);
         socket.emit('userList', userInRoom[room]);
-        //console.log('廣播使用者名單囉!', userInRoom[room])
+    //console.log('廣播使用者名單囉!', userInRoom[room])
     });
 
     socket.on('leaveRoom', function(room) {
@@ -136,7 +144,7 @@ io.on('connection', function(socket) {
         //再使用者加入房間的時候，把把房內人員名單傳給使用者
         socket.broadcast.emit('userList', userInRoom[room]);
         socket.emit('userList', userInRoom[room]);
-        //console.log('廣播使用者名單囉!', userInRoom[room])
+    //console.log('廣播使用者名單囉!', userInRoom[room])
     });
 
     socket.on('newParticipantA', function(msgSender, room) {
@@ -157,7 +165,7 @@ io.on('connection', function(socket) {
 
     socket.on('disconnect', function() {
         let room = socket.rooms
-            //console.log("使用者: " + socket.id + " 離開了");
+        //console.log("使用者: " + socket.id + " 離開了");
         socket.broadcast.emit('participantLeft', socket.id);
         //當使用者離開聊天室，就將他移出房間
         socket.leave(room);
@@ -178,7 +186,7 @@ io.on('connection', function(socket) {
         //再使用者加入房間的時候，把把房內人員名單傳給使用者
         socket.broadcast.emit('userList', userInRoom[room]);
         socket.emit('userList', userInRoom[room]);
-        //console.log('廣播使用者名單囉!', userInRoom[room])
+    //console.log('廣播使用者名單囉!', userInRoom[room])
     });
 
     socket.on('requestVideoFromUser', function(sender) {
@@ -202,8 +210,11 @@ io.on('connection', function(socket) {
     });
 
     socket.on('getHistory', (room) => {
-        db.History.find({ 'room': room }, function(err, data) {
-            if (err) throw err;
+        db.History.find({
+            'room': room
+        }, function(err, data) {
+            if (err)
+                throw err;
             socket.emit('onHistoryResult', data);
         });
     });
