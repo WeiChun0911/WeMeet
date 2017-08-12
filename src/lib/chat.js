@@ -6,7 +6,6 @@ let Chat = {
         let localStream = '';
         let fileChannels = {};
         let msgChannels = {};
-        let aaa = Meeting;
         //取得使用者端的影像
         Chat.getUserMedia = (id, room, socket) => {
             navigator.mediaDevices.getUserMedia({
@@ -33,7 +32,7 @@ let Chat = {
                                 localVideoURL : videoURL
                             })
                         }
-                    } else {
+                    } else{
                         console.log("沒聲音也沒影像欸QQ? 我覺得不行");
                         window.history.back();
                     }
@@ -41,7 +40,7 @@ let Chat = {
                 .catch((e) => {
                     //alert("無法偵測到您的麥克風或鏡頭，請重新授權，WeMeet基於WebRTC連線，必需要其中");
                     alert(e)
-                    window.history.back();
+                    //window.history.back();
                 });
         };
 

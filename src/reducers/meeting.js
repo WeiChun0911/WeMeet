@@ -57,7 +57,7 @@ export default function meeting(state = initialState, action) {
         case "changeVideoState":
             return state;
         case "gotLocalVideo":
-            return {...state , localVideoURL : action.payload}
+            return {...state , localVideoURL : action.data}
         // case "changeRecognizeState":
         //     return state;
         // case "changeRecognizeState":

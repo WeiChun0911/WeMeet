@@ -11,7 +11,7 @@ import Recorder from "../lib/recorder";
 import IndexLogo from "./IndexLogo";
 import ParticipantList from "./ParticipantList";
 //action
-import {addParticipant,delParticipant} from "../actions/Actions";
+import { addParticipant , delParticipant } from "../actions/Actions";
 
 socket.emit("giveMeMySocketId");
 
@@ -26,22 +26,13 @@ let configuration = {
     ]
 };
 
-window.onbeforeunload = function() {
-    socket.emit("leaveRoom");
-};
-
 class Meeting extends React.Component {
     constructor(props) {
         super(props);
-        this.recorder = new Recorder();
         this.Chat = chat.createNew(this);
         this.Recognizer = recognition.createNew(this);
         this.localUserID = "";
         this.videoList = [];
-        this.tagList = {};
-
-        this.isPlaying = false;
-        
         this.getSystemTime = this.getSystemTime.bind(this);
         this.Chat.toggleUserMedia = this.Chat.toggleUserMedia.bind(this.Chat)
         this.languageList = [
@@ -160,7 +151,6 @@ class Meeting extends React.Component {
             time:"",
             roomURL: "沒東西欸?",
             isStreaming: false,
-            isRecording:false,
             isSounding:false,
             isRecognizing :false,
             videoIsReady: false,
@@ -188,7 +178,7 @@ class Meeting extends React.Component {
 
         socket.on("gotSocketID", id => {
             this.localUserID = id;
-            this.props.dispatch(addParticipant(this.localUserID));
+            //this.props.dispatch(addParticipant(this.localUserID));
             this.Recognizer.id = this.localUserID;
             this.Chat.getUserMedia(this.localUserID, this.state.roomURL.substring(30), socket);
             socket.emit("join", this.state.roomURL);
@@ -388,21 +378,8 @@ class Meeting extends React.Component {
         this.Chat.sendFileToUser(file);
     }
 
-    toggleRecording() {
-        if (isRecording) {
-            this.isRecording = false;
-        }
-        this.isRecording = true;
-        this.isPlaying = false;
-    }
-
     download() {
         this.recorder.download();
-    }
-
-    play() {
-        this.recorder.play();
-        this.isPlaying = true;
     }
 
     setLanguage(e) {
