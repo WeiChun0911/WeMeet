@@ -1,7 +1,9 @@
 'use strict';
+import socket from "../socket";
 
 let Recognition = {
-    createNew: (MeetingActions, MeetingStore, socket, room) => {
+    //MeetingActions, MeetingStore, socket, room
+    createNew: (Meeting) => {
         //模組物件
         let recognizer = {};
 
@@ -20,39 +22,30 @@ let Recognition = {
             recognition.lang = dialect.value;
         }
 
-        let two_line = /\n\n/g;
-        let one_line = /\n/g;
-
-        let first_char = /\S/;
-
-        let capitalize = (s) => {
-            return s.replace(first_char, (m) => {
-                return m.toUpperCase();
-            });
-        };
-
         recognizer.toggleButtonOnclick = () => {
-            if (MeetingStore.state.isRecognizing) {
+            if (Meeting.state.isRecognizing) {
                 recognition.stop();
-                MeetingActions.changeRecognizeState();
+                Meeting.setState({
+                    isRecognizing : false
+                })
             } else {
                 final_transcript = '';
                 ignore_onend = false;
                 start_timestamp = event.timeStamp;
                 recognition.start();
-                MeetingActions.changeRecognizeState();
+                Meeting.setState({
+                    isRecognizing : true
+                })
             }
         }
 
         recognition.onerror = (event) => {
             if (event.error == 'no-speech') {
                 alert('偵測不到麥克風訊號，請調整裝置的設定。');
-                recognition.stop();
             }
             if (event.error == 'audio-capture') {
                 alert('偵測不到麥克風，請正確安裝。');
                 ignore_onend = true;
-                recognition.stop();
             }
             if (event.error == 'not-allowed') {
                 if (event.timeStamp - start_timestamp < 100) {
@@ -61,15 +54,19 @@ let Recognition = {
                     alert('存取麥克風被拒。');
                 }
                 ignore_onend = true;
-                recognition.stop();
             }
-            MeetingActions.changeRecognizeState();
+            recognition.stop();
+            Meeting.setState({
+                isRecognizing:false,
+                recognitionResult:""
+            })
         };
 
         recognition.onend = () => {
-            if (MeetingStore.state.isRecognizing) {
-                MeetingActions.changeRecognizeState();
-            }
+            Meeting.setState({
+                isRecognizing:false,
+                recognitionResult:""
+            })
         };
 
         recognition.onresult = (event) => {
@@ -78,6 +75,9 @@ let Recognition = {
             if (typeof(event.results) == 'undefined') {
                 recognition.onend = null;
                 recognition.stop();
+                Meeting.setState({
+                    isRecognizing:false
+                })
                 return;
             }
             let meetingHistory = [];
@@ -85,21 +85,23 @@ let Recognition = {
             let time = date.getTime();
             for (let i = event.resultIndex; i < event.results.length; ++i) {
                 if (event.results[i].isFinal) {
-                    console.log(recognizer.id);
-                    socket.emit('history', JSON.stringify({
-                        'time': time,
-                        'name': recognizer.id,
-                        'value': event.results[i][0].transcript
-                    }), room);
+                    // socket.emit('history', JSON.stringify({
+                    //     'time': time,
+                    //     'name': recognizer.id,
+                    //     'value': event.results[i][0].transcript
+                    // }), Meeting.state.roomURL.substring(30));
                     final_transcript = event.results[i][0].transcript;
+                    Meeting.setState({
+                        recognitionResult:final_transcript
+                    });
                 } else {
                     interim_transcript += event.results[i][0].transcript;
+                    Meeting.setState({
+                        recognitionResult:interim_transcript
+                    });
                 }
             }
-            MeetingActions.updateResult({
-                temp: interim_transcript,
-                final: final_transcript
-            });
+            
         }
         return recognizer;
     }

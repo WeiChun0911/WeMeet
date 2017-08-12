@@ -1,8 +1,8 @@
 import React from "react";
-import HistoryStore from "../stores/HistoryStore";
-import HistoryActions from "../actions/HistoryActions";
+// import HistoryStore from "../stores/HistoryStore";
+// import HistoryActions from "../actions/HistoryActions";
 import socket from "../socket";
-import FriendList from "./FriendList";
+//import FriendList from "./FriendList";
 import IndexLogo from "./IndexLogo";
 
 let room = window.location.hash;

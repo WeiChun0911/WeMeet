@@ -16,7 +16,6 @@ const initialState = {
     roomList = []
 }
 
-
 export default function history(state = initialState, action) {
   switch (action.type) {
     case 'setHistory':

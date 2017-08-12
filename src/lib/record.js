@@ -1,3 +1,5 @@
+'use strict';
+
 let Recorder = {　　　　
     createNew: (source) => {　　　　　　
         let recorder = {};　　　　　

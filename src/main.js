@@ -1,11 +1,37 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-import App from './components/App';
-import { createStore } from 'redux';
+import "babel-polyfill";
+import React from "react";
+import ReactDOM from "react-dom";
+import roomList from "./reducers/roomList";
+import participantList from "./reducers/participantList";
+import meeting from "./reducers/meeting";
+import connection from "./reducers/connection";
+import { createStore, combineReducers } from "redux";
+import { BrowserRouter as Router, Route } from "react-router-dom";
+import { Switch } from "react-router";
+import { Provider } from "react-redux";
+import Index from "./components/Index";
+import Meeting from "./components/Meeting"
 
-const reducer = () => {
-}
+let reducers = combineReducers({
+	roomList,
+	participantList,
+	meeting,
+	connection
+});
 
-const store = createStore(reducer);
+const store = createStore(
+	reducers,
+	window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__()
+);
 
-ReactDOM.render(<App store={ store } />, document.getElementById('app'));
+ReactDOM.render(
+	<Provider store={store}>
+		<Router>
+			<Switch>
+				<Route exact path="/" component={Index} />
+				<Route path="/meeting" component={Meeting} />
+			</Switch>
+		</Router>
+	</Provider>,
+	document.getElementById("app")
+);
