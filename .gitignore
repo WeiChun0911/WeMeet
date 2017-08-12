@@ -1,5 +1,7 @@
-# Dependency directory
 node_modules/
 bower_components/
 *.pem 
 *.md
+.babelrc
+package.json
+public/bundle.js
