@@ -1,7 +1,5 @@
 node_modules/
 bower_components/
-*.pem 
+*.pem
 *.md
-.babelrc
-package.json
 public/bundle.js
