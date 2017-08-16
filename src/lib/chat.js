@@ -1,105 +1,129 @@
-'use strict';
-import { gotLocalVideo } from "../actions/Actions";
+"use strict";
+import {
+    gotLocalVideo,
+    addRemoteStreamURL,
+    delRemoteStreamURL
+} from "../actions/Actions";
 
 let Chat = {
-    createNew: (Meeting) => {
-        let localStream = '';
+    createNew: Meeting => {
+        let localStream = "";
         let fileChannels = {};
         let msgChannels = {};
         //取得使用者端的影像
         Chat.getUserMedia = (id, room, socket) => {
-            navigator.mediaDevices.getUserMedia({
-                    video:true,
-                    audio:true
+            navigator.mediaDevices
+                .getUserMedia({
+                    video: true,
+                    audio: true
                 })
-                .then((stream) => {
-                    if (stream.getVideoTracks().length > 0 || stream.getAudioTracks().length > 0) {
+                .then(stream => {
+                    if (
+                        stream.getVideoTracks().length > 0 ||
+                        stream.getAudioTracks().length > 0
+                    ) {
                         let videoURL = window.URL.createObjectURL(stream);
                         localStream = stream;
-                        socket.emit('newParticipantA', id, room);
-                        if(stream.getVideoTracks().length > 0){
+                        socket.emit("newParticipantA", id, room);
+                        if (stream.getVideoTracks().length > 0) {
                             Meeting.setState({
-                                isStreaming : true,
-                                videoIsReady : true,
-                                localVideoURL : videoURL
-                            })
+                                isStreaming: true,
+                                videoIsReady: true,
+                                localVideoURL: videoURL
+                            });
                         }
-                        if(stream.getAudioTracks().length > 0){
+                        if (stream.getAudioTracks().length > 0) {
                             Meeting.setState({
-                                isStreaming : true,
-                                isSounding : true,
-                                videoIsReady : true,
-                                localVideoURL : videoURL
-                            })
+                                isStreaming: true,
+                                isSounding: true,
+                                videoIsReady: true,
+                                localVideoURL: videoURL
+                            });
                         }
-                    } else{
+                    } else {
                         console.log("沒聲音也沒影像欸QQ? 我覺得不行");
                         window.history.back();
                     }
                 })
-                .catch((e) => {
+                .catch(e => {
                     //alert("無法偵測到您的麥克風或鏡頭，請重新授權，WeMeet基於WebRTC連線，必需要其中");
-                    alert(e)
+                    alert(e);
                     //window.history.back();
                 });
         };
 
         Chat.toggleUserMedia = () => {
-            localStream.getVideoTracks()[0].enabled = !(localStream.getVideoTracks()[0].enabled);
-            Meeting.setState({isStreaming : !Meeting.state.isStreaming})
+            localStream.getVideoTracks()[0].enabled = !localStream.getVideoTracks()[0]
+                .enabled;
+            Meeting.setState({ isStreaming: !Meeting.state.isStreaming });
         };
 
         Chat.toggleAudio = () => {
-            localStream.getAudioTracks()[0].enabled = !(localStream.getAudioTracks()[0].enabled);
-            Meeting.setState({isSounding : !Meeting.state.isSounding})
-        }
+            localStream.getAudioTracks()[0].enabled = !localStream.getAudioTracks()[0]
+                .enabled;
+            Meeting.setState({ isSounding: !Meeting.state.isSounding });
+        };
 
         //建立點對點連線物件，以及為連線標的創建影像視窗
-        Chat.createPeerConnection = (isInitiator, config, remotePeer, socket) => {
-            console.log(1);
+        Chat.createPeerConnection = (
+            isInitiator,
+            config,
+            remotePeer,
+            socket
+        ) => {
             let peerConn = new RTCPeerConnection(config);
-            console.log(2);
             if (localStream) {
                 peerConn.addStream(localStream);
             }
 
-            for (let id in MeetingStore.state.candidateQueue) {
-                console.log('加回來');
-                if (id == remotePeer) {
-                    peerConn.addIceCandidate(new RTCIceCandidate(MeetingStore.state.candidateQueue[id]));
+            if (Meeting.props.candidateQueue) {
+                if (Meeting.props.candidateQueue[Meeting.localUserID]) {
+                    Meeting.props.candidateQueue[
+                        Meeting.localUserID
+                    ].map(candidateObj => {
+                        peerConn.addIceCandidate(
+                            new RTCIceCandidate(candidateObj)
+                        );
+                    });
                 }
             }
 
             // send any ice candidates to the other peer
-            peerConn.onicecandidate = (event) => {
+            peerConn.onicecandidate = event => {
                 if (event.candidate) {
                     //console.log('local端找到ice candidate>要傳出去: ' + JSON.stringify(event.candidate));
-                    socket.emit('onIceCandidateA', event.candidate, localUserID, remotePeer);
+                    socket.emit(
+                        "onIceCandidateA",
+                        event.candidate,
+                        Meeting.localUserID,
+                        remotePeer
+                    );
                 }
             };
 
-            peerConn.onaddstream = (event) => {
-                console.log('收到遠端加入影像');
+            peerConn.onaddstream = event => {
+                console.log("收到遠端加入影像");
                 let url = URL.createObjectURL(event.stream);
-                MeetingActions.addRemoteStreamURL({
-                    a: remotePeer,
-                    b: url
-                });
+                Meeting.props.dispatch(
+                    addRemoteStreamURL({
+                        id: remotePeer,
+                        url: url
+                    })
+                );
             };
 
-            peerConn.onremovestream = (event) => {
-                console.log('收到遠端離開');
+            peerConn.onremovestream = event => {
+                console.log("收到遠端離開");
                 // console.log('Remote stream removed. Event: ', event);
-                MeetingActions.userLeft(remotePeer);
+                Meeting.props.dispatch(delRemoteStreamURL(remotePeer));
             };
 
             //如果是開啟P2P的人
             if (isInitiator) {
-                console.log(3);
                 //console.log('Createing Data Channel');
                 //建立資料傳送頻道、訊息傳送頻道
-                let fileChannel = peerConn.createDataChannel('files');
-                let msgChannel = peerConn.createDataChannel('messages');
+                let fileChannel = peerConn.createDataChannel("files");
+                let msgChannel = peerConn.createDataChannel("messages");
                 fileChannels[remotePeer] = fileChannel;
                 msgChannels[remotePeer] = msgChannel;
 
@@ -118,10 +142,10 @@ let Chat = {
             } else {
                 //如果不是開房的，是加入別人的房間
                 //如果有連線成功，會接到這個事件
-                peerConn.ondatachannel = (event) => {
-                    console.log('ondatachannel:', event.channel.label);
+                peerConn.ondatachannel = event => {
+                    console.log("ondatachannel:", event.channel.label);
                     //加入別人建立的頻道
-                    if (event.channel.label == 'files') {
+                    if (event.channel.label == "files") {
                         //開啟通道後，初始化HTML元素
                         // downloadAnchor.textContent = '';
                         // downloadAnchor.removeAttribute('download');
@@ -131,12 +155,12 @@ let Chat = {
                         // }
                         let fileChannel = event.channel;
                         fileChannels[remotePeer] = fileChannel;
-                        console.log('joined channel' + event.channel.label);
+                        console.log("joined channel" + event.channel.label);
                         onDataChannelCreated(fileChannel);
-                    } else if (event.channel.label == 'messages') {
+                    } else if (event.channel.label == "messages") {
                         let msgChannel = event.channel;
                         msgChannels[remotePeer] = msgChannel;
-                        console.log('joined channel' + event.channel.label);
+                        console.log("joined channel" + event.channel.label);
                         onDataChannelCreated(msgChannel);
                     }
                 };
@@ -145,46 +169,50 @@ let Chat = {
         };
 
         //建立資料傳遞頻道後，立即處理的函數
-        let onDataChannelCreated = (channel) => {
+        let onDataChannelCreated = channel => {
             channel.onopen = () => {
-                console.log('channel: ' + channel.label + ' is now opened!!!');
+                console.log("channel: " + channel.label + " is now opened!!!");
             };
-            channel.onmessage = (event) => {
-                if (channel.label == 'files') {
-                    if (typeof event.data === 'string') {
+            channel.onmessage = event => {
+                if (channel.label == "files") {
+                    if (typeof event.data === "string") {
                         let received = new window.Blob(receiveBuffer);
                         receiveBuffer = [];
                         fileContainer = URL.createObjectURL(received);
                     }
                     //把每個ArrayBuffer都存在同一個陣列裡
                     receiveBuffer.push(event.data); //把資料push進陣列
-                } else if (channel.label == 'messages') {
+                } else if (channel.label == "messages") {
                     Meeting.setState({
-                        textRecord: [...Meeting.state.textRecord,event.data]
-                    })
+                        textRecord: [...Meeting.state.textRecord, event.data]
+                    });
                 }
             };
         };
 
-        Chat.sendText = (value) => {
+        Chat.sendText = value => {
             if (!value) {
                 return;
             }
             //取得現在時間
             let date = new Date();
             //自定義時間格式:Hour-Minute
-            let formattedTime = date.getHours() + ':' + (date.getMinutes() < 10 ? '0' : '') + date.getMinutes();
+            let formattedTime =
+                date.getHours() +
+                ":" +
+                (date.getMinutes() < 10 ? "0" : "") +
+                date.getMinutes();
             let record = {
-                    'userID': Meeting.localUserID,
-                    'sendTime': formattedTime,
-                    'text': value
-            }
+                userID: Meeting.localUserID,
+                sendTime: formattedTime,
+                text: value
+            };
             for (let id in msgChannels) {
                 msgChannels[id].send(JSON.stringify(record));
             }
             Meeting.setState({
-                textRecord: [...Meeting.state.textRecord,record]
-            })
+                textRecord: [...Meeting.state.textRecord, record]
+            });
         };
 
         // Chat.sendFileToUser = (files) => {
@@ -228,7 +256,6 @@ let Chat = {
         //     };
         //     sliceFile(0);
         // };
-
 
         // Chat.sendFileToDB = (localUserID, files) => {
         //     //假設一次上傳多個檔案，files[0]指的是第一個傳的檔案

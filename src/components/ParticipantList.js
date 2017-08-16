@@ -6,8 +6,8 @@ import socket from "../socket";
 // import MeetingStore from '../stores/MeetingStore';
 import { connect } from "react-redux";
 import {
-    addParticipant,
-    delParticipant,
+    addParticipantList,
+    delParticipantList,
     setParticipantList
 } from "../actions/Actions";
 
@@ -17,16 +17,13 @@ class ParticipantList extends React.Component {
     }
     componentDidMount() {
         socket.on("setParticipantList", participantList => {
-            console.log(123)
             this.props.dispatch(setParticipantList(participantList));
         });
-        socket.on("addParticipant", participantID => {
-            console.log(456)
-            this.props.dispatch(addParticipant(participantID));
+        socket.on("addParticipantList", participantID => {
+            this.props.dispatch(addParticipantList(participantID));
         });
-        socket.on("delParticipant", participantID => {
-            console.log(789)
-            this.props.dispatch(delParticipant(participantID));
+        socket.on("delParticipantList", participantID => {
+            this.props.dispatch(delParticipantList(participantID));
         });
     }
     render() {

@@ -1,15 +1,15 @@
 import React from "react";
-import { setRoomList,addRoom,delRoom } from "../actions/Actions";
+import { setRoomList, addRoom, delRoom } from "../actions/Actions";
 // import FriendListStore from '../stores/FriendListStore';
 // import FriendListActions from '../actions/FriendListActions';
 import socket from "../socket";
 import { connect } from "react-redux";
+import { Link, withRouter } from "react-router-dom";
 
 class RoomList extends React.Component {
     constructor(props) {
         super(props);
         this.roomName = "";
-        this.meetingURL = "http://localhost:8787/meeting#";
     }
 
     componentDidMount() {
@@ -20,7 +20,7 @@ class RoomList extends React.Component {
         });
 
         socket.on("addRoom", room => {
-           this.props.dispatch(addRoom(room));
+            this.props.dispatch(addRoom(room));
         });
 
         socket.on("delRoom", room => {
@@ -36,37 +36,36 @@ class RoomList extends React.Component {
             if (e.charCode == 13) {
                 e.preventDefault();
                 this.roomName = this.refs.roomNum.value;
-                window.location.href =
-                    this.meetingURL + this.refs.roomNum.value;
+                this.props.history.push("/meeting#" + this.roomName);
             }
         } else {
             if (e.charCode == 13) {
                 e.preventDefault();
                 let r = confirm("你沒有輸入房名喔! 我們給你一組亂碼好嗎?");
                 if (r == true) {
-                    window.location.href = this.meetingURL;
+                    this.props.history.push("/meeting#" + this.roomName);
                 }
             }
         }
     }
 
-    handleCreateRoom_Click() {
+    handleCreateRoom_Click(e) {
         if (this.refs.roomNum.value) {
             this.roomName = this.refs.roomNum.value;
-            window.location.href = this.meetingURL + this.refs.roomNum.value;
         } else {
             let r = confirm("你沒有輸入房名喔! 我們給你一組亂碼好嗎?");
-            if (r == true) {
-                window.location.href = this.meetingURL;
+            if (r == false) {
+                e.preventDefault();
             }
         }
     }
 
     handleJoinRoom(room) {
-        window.location.href = this.meetingURL + this.refs.roomNum.value;
+        // window.location.href = this.meetingURL + this.refs.roomNum.value;
     }
 
     render() {
+        console.log(this.props);
         let room = this.props.roomList.map(room => {
             return (
                 <div id="roomProp">
@@ -77,7 +76,7 @@ class RoomList extends React.Component {
                         id="room_name"
                         onClick={this.handleJoinRoom.bind(this)}
                     >
-                        {room.substring(30)}
+                        <Link>{room.substring(30)}</Link>
                     </div>
                 </div>
             );
@@ -93,16 +92,18 @@ class RoomList extends React.Component {
                                 type="text"
                                 ref="roomNum"
                                 id="input-10"
-                                onKeyPress={this.handleCreateRoom_Enter.bind(
-                                    this
-                                )}
+                                onKeyPress={e=>{
+                                    this.handleCreateRoom_Enter(e);
+                                }}
                             />
                         </div>
                         <div id="AddGo">
                             <img
                                 id="Addgo"
                                 src="../img/index_go1.png"
-                                onClick={this.handleCreateRoom_Click.bind(this)}
+                                onClick={e => {
+                                    this.handleCreateRoom_Click(e);
+                                }}
                             />
                         </div>
                     </div>
@@ -122,4 +123,4 @@ const mapStateToProps = state => {
     };
 };
 
-export default connect(mapStateToProps)(RoomList);
+export default connect(mapStateToProps)(withRouter(RoomList));

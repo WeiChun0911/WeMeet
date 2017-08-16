@@ -27,17 +27,17 @@ export function setParticipantList(participantList) {
 }
 
 
-export function addParticipant(participantObj) {
+export function addParticipantList(participantID) {
 	return {
-		type: "addParticipant",
-		data: participantObj
+		type: "addParticipantList",
+		data: participantID
 	};
 }
 
-export function delParticipant(participantObj) {
+export function delParticipantList(participantID) {
 	return {
-		type: "delParticipant",
-		data: participantObj
+		type: "delParticipantList",
+		data: participantID
 	};
 }
 
@@ -62,6 +62,8 @@ export function delRoom(room) {
 	};
 }
 
+
+
 export function gotLocalVideo(url) {
 	return {
 		type: "gotLocalVideo",
@@ -69,9 +71,30 @@ export function gotLocalVideo(url) {
 	}
 }
 
-export function newParticipant(participantObj){
+export function addParticipantConnection(participantObj){
 	return {
-		type:"newParticipant",
+		type:"addParticipantConnection",
 		data: participantObj
+	}
+}
+
+export function delParticipantConnection(participantObj){
+	return {
+		type:"delParticipantConnection",
+		data: participantObj
+	}
+}
+
+export function addRemoteStreamURL(streamObj){
+	return {
+		type:"addRemoteStreamURL",
+		data:streamObj
+	}
+}
+
+export function delRemoteStreamURL(id){
+	return {
+		type:"delRemoteStreamURL",
+		data:id
 	}
 }

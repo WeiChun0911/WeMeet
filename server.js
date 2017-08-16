@@ -78,6 +78,17 @@ console.log("已啟動伺服器!");
 
 io.on("connection", function(socket) {
     console.log("有人連線囉~" + socket.id);
+    socket.emit("whereAreU");
+    socket.on("IAmAt", function(location, room) {
+        if (location == "/meeting") {
+            if (!userInRoom.hasOwnProperty(room)) {
+                socket.emit("joinRoom");
+            }
+            if (userInRoom[room] && !userInRoom[room].includes(socket.id)) {
+                socket.emit("joinRoom");
+            }
+        }
+    });
     socket.emit("setRoomList", roomList);
 
     //console.log("接收到使用者: " + socket.id + " 的連線");
@@ -108,14 +119,12 @@ io.on("connection", function(socket) {
     });
 
     socket.on("join", function(room) {
-         //將使用者加入房間
+        //將使用者加入房間
         socket.join(room);
-
-        console.log("有人加入房間囉" + socket.id)
-        console.log(Object.keys(socket.rooms)[0])
+        console.log("有人加入房間囉" + socket.id + "加入了" + room);
         //將新的人廣播出去
-        socket.emit("addParticipant", socket.id);
-        socket.to(room).emit("addParticipant", socket.id);
+        socket.emit("addParticipantList", socket.id);
+        socket.to(room).emit("addParticipantList", socket.id);
         //console.log('收到「加入」房間: ' + room + ' 的請求');
         if (!roomList.includes(room)) {
             //將房間加入"房間"列表
@@ -126,42 +135,30 @@ io.on("connection", function(socket) {
         if (!userInRoom[room]) {
             //房間不存在
             userInRoom[room] = [socket.id];
-            console.log(userInRoom[room])
-        } else if (userInRoom[room] && userInRoom[room].includes(socket.id)) {
+            console.log(userInRoom[room]);
+        } else if (userInRoom[room] && !userInRoom[room].includes(socket.id)) {
             //房間存在，但人不存在房間裡
             userInRoom[room].push(socket.id);
-            console.log(userInRoom[room] + 456)
         }
     });
 
-    // socket.on("leaveRoom", function() {
-    //     console.log("有人離開房間囉~" + socket.id);
-    //     //當使用者離開聊天室，就將他移出房間
-    //     let room = Object.keys(socket.rooms)[0];
-    //     //console.log('有人離開ㄌ', userInRoom[room])
-    //     if (userInRoom[room].length>0) {
-    //         //如果那間房存在，就從裡面把這個人移除
-    //         userInRoom[room].splice(userInRoom[room].indexOf(socket.id), 1);
-    //         io.in(room).emit("delParticipant", socket.id);
-    //     }
-    //     if (!userInRoom[room]) {
-    //         //如果房間裏面都沒人了，就把房間刪掉
-    //         roomList.splice(roomList.indexOf(room), 1);
-    //         socket.emit("delRoom",room);
-    //         socket.broadcast.emit("delRoom", room);
-    //     }
-    //     //將新的房間名單傳出去
-    //     //socket.broadcast.emit('newRoom', roomList);
-    //     //socket.emit('newRoom', roomList);
-    //     //console.log('廣播房間名單囉!', roomList)
-
-    //     //再使用者加入房間的時候，把把房內人員名單傳給使用者
-    //     //socket.broadcast.emit('userList', userInRoom[room]);
-    //     //socket.emit('userList', userInRoom[room]);
-
-    //     socket.leave(room);
-    //     //console.log('廣播使用者名單囉!', userInRoom[room])
-    // });
+    socket.on("leaveRoom", function() {
+        console.log("有人離開房間囉~" + socket.id);
+        //當使用者離開聊天室，就將他移出房間
+        let room = Object.keys(socket.rooms)[0];
+        //console.log('有人離開ㄌ', userInRoom[room])
+        if (userInRoom[room]) {
+            //如果那間房存在，就從裡面把這個人移除
+            userInRoom[room].splice(userInRoom[room].indexOf(socket.id), 1);
+            io.in(room).emit("delParticipantList", socket.id);
+        } else {
+            //如果房間裏面都沒人了，就把房間刪掉
+            roomList.splice(roomList.indexOf(room), 1);
+            socket.emit("delRoom", room);
+            socket.broadcast.emit("delRoom", room);
+        }
+        socket.leave(room);
+    });
 
     socket.on("newParticipantA", function(msgSender, room) {
         socket.to(room).emit("newParticipantB", msgSender);
@@ -179,34 +176,22 @@ io.on("connection", function(socket) {
         socket.to(receiver).emit("onIceCandidateB", candidate, sender);
     });
 
-    socket.on("disconnect", function() {
+    socket.on("disconnecting", function() {
         console.log("有人斷線囉~" + socket.id);
         let room = Object.keys(socket.rooms)[0];
         //當使用者離開聊天室，就將他移出房間
-        console.log(room);
-        //console.log('有人離開ㄌ', userInRoom[room])
+        //console.log(room);
+        console.log("有人離開ㄌ", userInRoom[room]);
         if (userInRoom[room]) {
             //如果那間房存在，就從裡面把這個人移除
             userInRoom[room].splice(userInRoom[room].indexOf(socket.id), 1);
-            console.log(123)
-            io.to(room).emit("delParticipant", socket.id);
+            io.to(room).emit("delParticipantList", socket.id);
         } else {
-            console.log("???")
             //如果房間裏面都沒人了，就把房間刪掉
             roomList.splice(roomList.indexOf(room), 1);
             socket.broadcast.emit("delRoom", room);
         }
-        //將新的房間名單傳出去
-        //socket.broadcast.emit('newRoom', roomList);
-        //socket.emit('newRoom', roomList);
-        //console.log('廣播房間名單囉!', roomList)
-
-        //再使用者加入房間的時候，把把房內人員名單傳給使用者
-        //socket.broadcast.emit('userList', userInRoom[room]);
-        //socket.emit('userList', userInRoom[room]);
-
         socket.leave(room);
-        //console.log('廣播使用者名單囉!', userInRoom[room])
     });
 
     socket.on("requestVideoFromUser", function(sender) {

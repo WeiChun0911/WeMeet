@@ -5,12 +5,12 @@ export default function participantList(state = initialState, action) {
     	case "setParticipantList":
     		return action.data;
 
-    	case "delParticipant":
+    	case "delParticipantList":
             return state.filter((id)=>{
             	return id !== action.data
             });
 
-        case "addParticipant":
+        case "addParticipantList":
             return state.concat(action.data);
 
         default:
