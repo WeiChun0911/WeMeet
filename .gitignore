@@ -4,3 +4,4 @@ bower_components/
 *.md
 public/bundle.js
 public/certificate/certrequest.csr
+*.csr
