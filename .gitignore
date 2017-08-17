@@ -3,3 +3,4 @@ bower_components/
 *.pem
 *.md
 public/bundle.js
+public/certificate/certrequest.csr
