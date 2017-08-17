@@ -4,7 +4,7 @@ import { setRoomList, addRoom, delRoom } from "../actions/Actions";
 // import FriendListActions from '../actions/FriendListActions';
 import socket from "../socket";
 import { connect } from "react-redux";
-import { Link, withRouter } from "react-router-dom";
+import { withRouter } from "react-router";
 
 class RoomList extends React.Component {
     constructor(props) {
@@ -65,7 +65,6 @@ class RoomList extends React.Component {
     }
 
     render() {
-        console.log(this.props);
         let room = this.props.roomList.map(room => {
             return (
                 <div id="roomProp">
@@ -76,7 +75,7 @@ class RoomList extends React.Component {
                         id="room_name"
                         onClick={this.handleJoinRoom.bind(this)}
                     >
-                        <Link>{room.substring(30)}</Link>
+                        {room.substring(30)}
                     </div>
                 </div>
             );
@@ -123,4 +122,4 @@ const mapStateToProps = state => {
     };
 };
 
-export default connect(mapStateToProps)(withRouter(RoomList));
+export default withRouter(connect(mapStateToProps)(RoomList));

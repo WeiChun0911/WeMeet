@@ -30,6 +30,10 @@ let configuration = {
     ]
 };
 
+window.addEventListener("beforeunload", function (event) {
+    alert("!!!!")
+});
+
 class Meeting extends React.Component {
     constructor(props) {
         super(props);
@@ -205,20 +209,20 @@ class Meeting extends React.Component {
             this.Recognizer.id = this.localUserID;
             this.Chat.getUserMedia(
                 this.localUserID,
-                window.location.href.substring(30),
+                window.location.hash,
                 socket
             );
         });
 
         socket.on("joinRoom", () => {
-            socket.emit("join", window.location.href.substring(30));
+            socket.emit("join", window.location.hash);
         });
 
         socket.on("whereAreU", function() {
             socket.emit(
                 "IAmAt",
                 window.location.pathname,
-                window.location.href.substring(30)
+                window.location.hash
             );
         });
 
@@ -237,12 +241,7 @@ class Meeting extends React.Component {
                 participantID,
                 socket
             );
-            this.props.dispatch(
-                addParticipantConnection({
-                    id: participantID,
-                    connectionObj: peerConn
-                })
-            );
+
             peerConn
                 .createOffer()
                 .then(offer => {

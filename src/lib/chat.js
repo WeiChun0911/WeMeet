@@ -165,6 +165,12 @@ let Chat = {
                     }
                 };
             }
+            this.props.dispatch(
+                addParticipantConnection({
+                    id: remotePeer,
+                    connectionObj: peerConn
+                })
+            );
             return peerConn;
         };
 

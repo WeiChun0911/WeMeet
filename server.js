@@ -31,13 +31,13 @@ let onlineUser = {}; //在線用戶
 // let fakeName = {};
 
 //HTTPS參數
-// const option = {
-//     key: fs.readFileSync('./public/certificate/privatekey.pem'),
-//     cert: fs.readFileSync('./public/certificate/certificate.pem')
-// };
+const option = {
+    key: fs.readFileSync('./public/certificate/privatekey.pem'),
+    cert: fs.readFileSync('./public/certificate/certificate.pem')
+};
 
 //對https Server內傳入express的處理物件
-const server = require("http").createServer(app);
+const server = require("https").createServer(option,app);
 const io = require("socket.io")(server);
 server.listen(8787);
 console.log("已啟動伺服器!");
@@ -78,6 +78,9 @@ console.log("已啟動伺服器!");
 
 io.on("connection", function(socket) {
     console.log("有人連線囉~" + socket.id);
+    socket.on("giveMeMySocketId", msg => {
+        socket.emit("gotSocketID", socket.id);
+    });
     socket.emit("whereAreU");
     socket.on("IAmAt", function(location, room) {
         if (location == "/meeting") {
@@ -91,17 +94,6 @@ io.on("connection", function(socket) {
     });
     socket.emit("setRoomList", roomList);
 
-    //console.log("接收到使用者: " + socket.id + " 的連線");
-    // console.log(typeof(socket.id));
-    // socket.on('setFakeName', function(dick) {
-    //     fakeName[socket.id] = dick;
-    // })
-
-    // socket.on('getFakeName', () => {
-    //     socket.emit('onFakeName', fakeName);
-    // })
-
-    //0516 Update
     socket.on("OpenBrain", function(list) {
         socket.broadcast.emit("OpenBrainForAll", list);
     });
@@ -114,51 +106,51 @@ io.on("connection", function(socket) {
         socket.broadcast.emit("deleteAgendaForAll", list);
     });
 
-    socket.on("giveMeMySocketId", msg => {
-        socket.emit("gotSocketID", socket.id);
-    });
-
     socket.on("join", function(room) {
         //將使用者加入房間
         socket.join(room);
         console.log("有人加入房間囉" + socket.id + "加入了" + room);
-        //將新的人廣播出去
-        socket.emit("addParticipantList", socket.id);
-        socket.to(room).emit("addParticipantList", socket.id);
-        //console.log('收到「加入」房間: ' + room + ' 的請求');
+
         if (!roomList.includes(room)) {
             //將房間加入"房間"列表
             roomList.push(room);
+            socket.broadcast.emit('addRoom',room)
+            socket.emit('addRoom',room)
             //console.log(roomList, '已經有加ㄌ喔!');
         }
+
         //將使用者加入"房間-使用者"列表中
         if (!userInRoom[room]) {
-            //房間不存在
+            //房間不存在，而且沒有人要通知，就通知新人
             userInRoom[room] = [socket.id];
-            console.log(userInRoom[room]);
+            socket.emit("addParticipantList", socket.id);
         } else if (userInRoom[room] && !userInRoom[room].includes(socket.id)) {
-            //房間存在，但人不存在房間裡
-            userInRoom[room].push(socket.id);
+            //房間存在，有人在裡面，但新人不存在房間裡
+            //對新人加在名單最前面>把名單整份發過去
+            userInRoom[room].unshift(socket.id);            
+            socket.emit("setParticipantList",userInRoom[room]);
+            //對房間內的人，發出新人加入的訊息
+            socket.to(room).emit("addParticipantList", socket.id);
         }
     });
 
-    socket.on("leaveRoom", function() {
-        console.log("有人離開房間囉~" + socket.id);
-        //當使用者離開聊天室，就將他移出房間
-        let room = Object.keys(socket.rooms)[0];
-        //console.log('有人離開ㄌ', userInRoom[room])
-        if (userInRoom[room]) {
-            //如果那間房存在，就從裡面把這個人移除
-            userInRoom[room].splice(userInRoom[room].indexOf(socket.id), 1);
-            io.in(room).emit("delParticipantList", socket.id);
-        } else {
-            //如果房間裏面都沒人了，就把房間刪掉
-            roomList.splice(roomList.indexOf(room), 1);
-            socket.emit("delRoom", room);
-            socket.broadcast.emit("delRoom", room);
-        }
-        socket.leave(room);
-    });
+    // socket.on("leaveRoom", function() {
+    //     console.log("有人離開房間囉~" + socket.id);
+    //     //當使用者離開聊天室，就將他移出房間
+    //     let room = Object.keys(socket.rooms)[0];
+    //     //console.log('有人離開ㄌ', userInRoom[room])
+    //     if (userInRoom[room]) {
+    //         //如果那間房存在，就從裡面把這個人移除
+    //         userInRoom[room].splice(userInRoom[room].indexOf(socket.id), 1);
+    //         io.in(room).emit("delParticipantList", socket.id);
+    //     } else {
+    //         //如果房間裏面都沒人了，就把房間刪掉
+    //         roomList.splice(roomList.indexOf(room), 1);
+    //         socket.emit("delRoom", room);
+    //         socket.broadcast.emit("delRoom", room);
+    //     }
+    //     socket.leave(room);
+    // });
 
     socket.on("newParticipantA", function(msgSender, room) {
         socket.to(room).emit("newParticipantB", msgSender);
@@ -184,12 +176,14 @@ io.on("connection", function(socket) {
         console.log("有人離開ㄌ", userInRoom[room]);
         if (userInRoom[room]) {
             //如果那間房存在，就從裡面把這個人移除
+            socket.emit("delParticipantList", socket.id);
+            socket.to(room).emit("delParticipantList", socket.id);
             userInRoom[room].splice(userInRoom[room].indexOf(socket.id), 1);
-            io.to(room).emit("delParticipantList", socket.id);
         } else {
             //如果房間裏面都沒人了，就把房間刪掉
-            roomList.splice(roomList.indexOf(room), 1);
+            socket.emit("delRoom", room);
             socket.broadcast.emit("delRoom", room);
+            roomList.splice(roomList.indexOf(room), 1);
         }
         socket.leave(room);
     });
