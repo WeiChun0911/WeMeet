@@ -88,7 +88,7 @@ export function delParticipantConnection(participantObj){
 export function addRemoteStreamURL(streamObj){
 	return {
 		type:"addRemoteStreamURL",
-		data:streamObj
+		data: streamObj
 	}
 }
 

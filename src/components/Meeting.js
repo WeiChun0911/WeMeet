@@ -13,10 +13,10 @@ import ParticipantList from "./ParticipantList";
 //action
 import {
     addParticipantList,
-    delParticipantList,
     addParticipantConnection,
     delParticipantConnection,
-    addCandidateQueue
+    delRemoteStreamURL,
+    addCandidateQueue,
 } from "../actions/Actions";
 
 let configuration = {
@@ -30,10 +30,6 @@ let configuration = {
     ]
 };
 
-window.addEventListener("beforeunload", function (event) {
-    alert("!!!!")
-});
-
 class Meeting extends React.Component {
     constructor(props) {
         super(props);
@@ -42,7 +38,7 @@ class Meeting extends React.Component {
         this.localUserID = "";
         this.videoList = [];
         this.getSystemTime = this.getSystemTime.bind(this);
-        this.Chat.toggleUserMedia = this.Chat.toggleUserMedia.bind(this.Chat);
+        //this.Chat.toggleUserMedia = this.Chat.toggleUserMedia.bind(this.Chat);
         this.languageList = [
             ["Afrikaans", ["af-ZA"]],
             ["Bahasa Indonesia", ["id-ID"]],
@@ -198,11 +194,16 @@ class Meeting extends React.Component {
     componentWillMount() {}
 
     componentDidMount() {
+        this.getRoom();
         //初始化區
+        socket.emit(
+                "IAmAt",
+                window.location.pathname,
+                window.location.hash
+            );
         socket.emit("giveMeMySocketId");
         this.getSystemTime();
         this.timer = setInterval(this.getSystemTime, 1000);
-        this.getRoom();
         socket.on("gotSocketID", id => {
             this.localUserID = id;
             //this.props.dispatch(addParticipant(this.localUserID));
@@ -218,13 +219,6 @@ class Meeting extends React.Component {
             socket.emit("join", window.location.hash);
         });
 
-        socket.on("whereAreU", function() {
-            socket.emit(
-                "IAmAt",
-                window.location.pathname,
-                window.location.hash
-            );
-        });
 
         //連線區
         socket.on("newParticipantB", participantID => {
@@ -245,7 +239,7 @@ class Meeting extends React.Component {
             peerConn
                 .createOffer()
                 .then(offer => {
-                    console.log("offer" + JSON.stringify(offer));
+                    //console.log("offer" + JSON.stringify(offer));
                     peerConn.setLocalDescription(offer);
                     socket.emit(
                         "offerRemotePeer",
@@ -263,7 +257,7 @@ class Meeting extends React.Component {
 
         socket.on("answer", (answer, sender) => {
             console.log(this.props.connections[sender]);
-            console.log("answer" + JSON.stringify(answer));
+            //console.log("answer" + JSON.stringify(answer));
             //console.log('有收到answer喔!');
             let settingPromise = this.props.connections[sender].setRemoteDescription(
                 new RTCSessionDescription(answer)
@@ -318,6 +312,11 @@ class Meeting extends React.Component {
                 });
         });
 
+        socket.on("participantDisconnected", (participantID)=>{
+            this.props.dispatch(delParticipantConnection(participantID));
+            this.props.dispatch(delRemoteStreamURL(participantID));
+        })
+
         //0516 更新腦力激盪
         // socket.on("OpenBrainForAll", function(agenda) {
         //     //console.log(agenda);
@@ -363,15 +362,14 @@ class Meeting extends React.Component {
 
     componentWillUnmount() {
         clearInterval(this.timer);
-        window.onbeforeunload = function() {
-            var prevent = false;
-            events.emit("will-leave", {
-                preventDefault: function(reason) {
-                    prevent = reason;
-                }
-            });
-            if (prevent) return prevent;
-        };
+        socket.emit("leaveRoom");
+        if(this.state.isStreaming){
+            this.Chat.toggleUserMedia();
+        }
+        if(this.state.isSounding){
+            this.Chat.toggleAudio();
+        }
+        
     }
 
     getRoom() {
@@ -516,7 +514,7 @@ class Meeting extends React.Component {
         let remoteVideo = [];
         for (let id in this.props.connections) {
             if (this.props.remoteStreamURL) {
-                if (this.props.remoteStreamURL[id]) {f
+                if (this.props.remoteStreamURL[id]) {
                     remoteVideo.push(
                         <div id="VideoUser-audio-on">
                             <video
@@ -666,7 +664,7 @@ class Meeting extends React.Component {
                                         ? "video-off"
                                         : "video-on"
                                 }
-                                onClick={this.Chat.toggleUserMedia}
+                                onClick={()=>{this.Chat.toggleUserMedia()}}
                             >
                                 {this.state.isStreaming ? "停止視訊" : "開起視訊"}
                             </button>

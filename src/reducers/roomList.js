@@ -10,7 +10,7 @@ export default function roomList(state = initialRoomList, action) {
 
         case "delRoom":
             return state.filter((room)=>{
-            	return name !== action.data
+            	return room !== action.data
             })
 
         default:

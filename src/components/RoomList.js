@@ -13,6 +13,11 @@ class RoomList extends React.Component {
     }
 
     componentDidMount() {
+        socket.emit(
+            "IAmAt",
+            window.location.pathname
+        );
+
         socket.on("setRoomList", list => {
             if (list.length) {
                 this.props.dispatch(setRoomList(list));
@@ -51,17 +56,21 @@ class RoomList extends React.Component {
 
     handleCreateRoom_Click(e) {
         if (this.refs.roomNum.value) {
+            e.preventDefault();
             this.roomName = this.refs.roomNum.value;
+            this.props.history.push("/meeting#" + this.roomName);
         } else {
             let r = confirm("你沒有輸入房名喔! 我們給你一組亂碼好嗎?");
-            if (r == false) {
+            if (r == true) {
+                this.props.history.push("/meeting#" + this.roomName);
+            } else {
                 e.preventDefault();
             }
         }
     }
 
     handleJoinRoom(room) {
-        // window.location.href = this.meetingURL + this.refs.roomNum.value;
+        this.props.history.push("/meeting" + room);
     }
 
     render() {
@@ -73,9 +82,9 @@ class RoomList extends React.Component {
                     </div>
                     <div
                         id="room_name"
-                        onClick={this.handleJoinRoom.bind(this)}
+                        onClick={()=>{this.handleJoinRoom(room)}}
                     >
-                        {room.substring(30)}
+                        {room}
                     </div>
                 </div>
             );

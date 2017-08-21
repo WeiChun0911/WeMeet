@@ -2,7 +2,8 @@
 import {
     gotLocalVideo,
     addRemoteStreamURL,
-    delRemoteStreamURL
+    delRemoteStreamURL,
+    addParticipantConnection
 } from "../actions/Actions";
 
 let Chat = {
@@ -165,7 +166,7 @@ let Chat = {
                     }
                 };
             }
-            this.props.dispatch(
+            Meeting.props.dispatch(
                 addParticipantConnection({
                     id: remotePeer,
                     connectionObj: peerConn

@@ -12,8 +12,7 @@ export default function connection(state = initialState, action) {
             return Object.assign({}, state, { localUserID: action.data });
         case "gotLocalVideo":
             return Object.assign({}, state, { localVideoURL: action.data });
-        case "addRemoteStreamURL":
-            return Object.assign({}, state, { remoteStreamURL: action.data });
+            
         case "addParticipantConnection":
             return {
                 ...state,
@@ -49,6 +48,7 @@ export default function connection(state = initialState, action) {
                     [action.data.id]: action.data.url
                 }
             };
+
         case "delRemoteStreamURL":
             return Object.assign({}, state, {
                 remoteStreamURL: Object.keys(

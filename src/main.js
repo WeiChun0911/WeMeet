@@ -3,7 +3,6 @@ import React from "react";
 import ReactDOM from "react-dom";
 import roomList from "./reducers/roomList";
 import participantList from "./reducers/participantList";
-import meeting from "./reducers/meeting";
 import connection from "./reducers/connection";
 import { createStore, combineReducers } from "redux";
 import { BrowserRouter as Router, Route } from "react-router-dom";
@@ -15,7 +14,6 @@ import Meeting from "./components/Meeting"
 let reducers = combineReducers({
 	roomList,
 	participantList,
-	meeting,
 	connection
 });
 
