@@ -13,6 +13,7 @@ class RoomList extends React.Component {
     }
 
     componentDidMount() {
+        console.warn("打你爸爸殺你叔叔")
         socket.emit(
             "IAmAt",
             window.location.pathname
@@ -33,8 +34,10 @@ class RoomList extends React.Component {
         });
     }
 
-    componentWillMount() {}
-
+    componentWillUnmount(){
+        console.error("打你爸爸殺你叔叔")
+        socket.removeAllListeners()
+    }
     //按下enter後的事件處理
     handleCreateRoom_Enter(e) {
         if (this.refs.roomNum.value) {
