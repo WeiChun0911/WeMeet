@@ -369,7 +369,6 @@ class Meeting extends React.Component {
         if(this.state.isSounding){
             this.Chat.toggleAudio();
         }
-        
     }
 
     getRoom() {

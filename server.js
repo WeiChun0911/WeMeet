@@ -86,8 +86,7 @@ io.on("connection", function(socket) {
         if (location == "/meeting") {
             if (!userInRoom.hasOwnProperty(room)) {
                 socket.emit("joinRoom");
-            }
-            if (userInRoom[room] && !userInRoom[room].includes(socket.id)) {
+            } else if (userInRoom[room] && !userInRoom[room].includes(socket.id)) {
                 socket.emit("joinRoom");
             }
         }
@@ -115,9 +114,8 @@ io.on("connection", function(socket) {
             //將房間加入"房間"列表
             roomList.push(room);
             socket.broadcast.emit('addRoom',room)
+            
             socket.emit('addRoom',room)
-            //console.log(roomList, '已經有加ㄌ喔!');
-            console.log(roomList)
         }
 
         //將使用者加入"房間-使用者"列表中
@@ -138,6 +136,7 @@ io.on("connection", function(socket) {
     socket.on("leaveRoom", function() {
         console.log("有人離開房間囉~" + socket.id);
         let room = Object.keys(socket.rooms)[1];
+        socket.leave(room);
         if (room) {
             //這人有在房間裡
             if(userInRoom[room]){
@@ -146,13 +145,13 @@ io.on("connection", function(socket) {
                     socket.emit("delRoom", room);
                     socket.broadcast.emit("delRoom", room);
                     roomList.splice(roomList.indexOf(room), 1);
+                    console.log("房間已刪除!" + room)
                 }
                 socket.emit("delParticipantList", socket.id);
                 socket.to(room).emit("delParticipantList", socket.id);
                 socket.to(room).emit("participantDisconnected", socket.id);
             }
             userInRoom[room].splice(userInRoom[room].indexOf(socket.id), 1);
-            socket.leave(room);
         }
     });
 
