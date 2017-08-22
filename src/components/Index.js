@@ -2,7 +2,7 @@ import React from "react";
 import RoomList from "./RoomList";
 import socket from "../socket";
 
-socket.emit("id");
+// socket.emit("id");
 class Index extends React.Component {
     constructor(props) {
         super(props);
