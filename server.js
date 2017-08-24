@@ -78,6 +78,9 @@ console.log("已啟動伺服器!");
 
 io.on("connection", function(socket) {
     console.log("有人連線囉~" + socket.id);
+    socket.on("999",()=>{
+        console.log("來互相傷害啊!");
+    })
     socket.on("giveMeMySocketId", () => {
         socket.emit("gotSocketID", socket.id);
     });
