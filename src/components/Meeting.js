@@ -219,7 +219,6 @@ class Meeting extends React.Component {
             socket.emit("join", window.location.hash);
         });
 
-
         //連線區
         socket.on("newParticipantB", participantID => {
             //接到新人加入的訊息時，檢查是否已有連線
@@ -369,6 +368,7 @@ class Meeting extends React.Component {
         if(this.state.isSounding){
             this.Chat.toggleAudio();
         }
+        socket.emit("999")
     }
 
     getRoom() {
