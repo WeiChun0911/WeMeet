@@ -16,15 +16,17 @@ class ParticipantList extends React.Component {
         super(props);
     }
     componentDidMount() {
-        socket.on("setParticipantList", participantList => {
-            this.props.dispatch(setParticipantList(participantList));
-        });
-        socket.on("addParticipantList", participantID => {
-            this.props.dispatch(addParticipantList(participantID));
-        });
-        socket.on("delParticipantList", participantID => {
-            this.props.dispatch(delParticipantList(participantID));
-        });
+        // socket.on("setParticipantList", participantList => {
+        //     this.props.dispatch(setParticipantList(participantList));
+        // });
+        // socket.on("addParticipantList", participantID => {
+        //     this.props.dispatch(addParticipantList(participantID));
+        // });
+        // socket.on("delParticipantList", participantID => {
+        //     this.props.dispatch(delParticipantList(participantID));
+        // });
+    }
+    componentWillUnmount() {
     }
     render() {
         //好友名單上線資料

@@ -87,11 +87,13 @@ io.on("connection", function(socket) {
     //直接連線到房間內部的話
     socket.on("IAmAt", function(location, room) {
         if (location == "/meeting") {
-            if (!userInRoom.hasOwnProperty(room)) {
+                if (!userInRoom.hasOwnProperty(room)) {
                 socket.emit("joinRoom");
-            } else if (userInRoom[room] && !userInRoom[room].includes(socket.id)) {
+                console.log("欸沒房啦 先加一波")
+            } else if (!userInRoom[room].includes(socket.id)) {
                 socket.emit("joinRoom");
-            }
+                console.log("欸有房啦 你進來")
+            }            
         }
     });
 
@@ -117,16 +119,14 @@ io.on("connection", function(socket) {
             //將房間加入"房間"列表
             roomList.push(room);
             socket.broadcast.emit('addRoom',room)
-            
             socket.emit('addRoom',room)
         }
 
-        //將使用者加入"房間-使用者"列表中
-        if (!userInRoom[room]) {
+        if (!userInRoom.hasOwnProperty(room)) {
             //房間不存在，而且沒有人要通知，就通知新人
             userInRoom[room] = [socket.id];
             socket.emit("addParticipantList", socket.id);
-        } else if (userInRoom[room] && !userInRoom[room].includes(socket.id)) {
+        } else if (!userInRoom[room].includes(socket.id)) {
             //房間存在，有人在裡面，但新人不存在房間裡
             //對新人加在名單最前面>把名單整份發過去
             userInRoom[room].unshift(socket.id);            
@@ -140,21 +140,20 @@ io.on("connection", function(socket) {
         console.log("有人離開房間囉~" + socket.id);
         let room = Object.keys(socket.rooms)[1];
         socket.leave(room);
-        if (room) {
-            //這人有在房間裡
-            if(userInRoom[room]){
-                if(userInRoom[room].length == 1 && userInRoom[room].includes(socket.id)){
-                    //如果房間裏面只有他，就把房間刪掉
-                    socket.emit("delRoom", room);
-                    socket.broadcast.emit("delRoom", room);
-                    roomList.splice(roomList.indexOf(room), 1);
-                    console.log("房間已刪除!" + room)
-                }
-                socket.emit("delParticipantList", socket.id);
-                socket.to(room).emit("delParticipantList", socket.id);
-                socket.to(room).emit("participantDisconnected", socket.id);
+        if(userInRoom[room]){
+            if(userInRoom[room].length == 1 && userInRoom[room].includes(socket.id)){
+                //如果房間裏面只有他，就把房間刪掉
+                socket.emit("delRoom", room);
+                socket.broadcast.emit("delRoom", room);
+                roomList.splice(roomList.indexOf(room), 1);
+                delete userInRoom[room];
+                console.log("房間已刪除!" + room)
+            }else{
+                userInRoom[room].splice(userInRoom[room].indexOf(socket.id), 1);
             }
-            userInRoom[room].splice(userInRoom[room].indexOf(socket.id), 1);
+            socket.emit("delParticipantList", socket.id);
+            socket.to(room).emit("delParticipantList", socket.id);
+            socket.to(room).emit("participantDisconnected", socket.id);
         }
     });
 
@@ -177,24 +176,21 @@ io.on("connection", function(socket) {
     socket.on("disconnecting", function() {
         console.log("有人斷線囉~" + socket.id);
         let room = Object.keys(socket.rooms)[1];
-        if (room) {
-            //這人有在房間裡
-            if(userInRoom[room]){
-                if(userInRoom[room].length==1 && userInRoom[room].includes(socket.id)){
-                    //如果房間裏面只有他，就把房間刪掉
-                    socket.emit("delRoom", room);
-                    socket.broadcast.emit("delRoom", room);
-                    roomList.splice(roomList.indexOf(room), 1);
-                } else if (userInRoom[room].length>1 && userInRoom[room].includes(socket.id)){
-                    //如果那間房存在，就從裡面把這個人移除
-                    socket.emit("delParticipantList", socket.id);
-                    socket.to(room).emit("delParticipantList", socket.id);
-                    //socket.emit("participantDisconnected", socket.id);
-                    socket.to(room).emit("participantDisconnected", socket.id);
-                }
+        socket.leave(room);
+        if(userInRoom[room]){
+            if(userInRoom[room].length == 1 && userInRoom[room].includes(socket.id)){
+                //如果房間裏面只有他，就把房間刪掉
+                socket.emit("delRoom", room);
+                socket.broadcast.emit("delRoom", room);
+                roomList.splice(roomList.indexOf(room), 1);
+                delete userInRoom[room];
+                console.log("房間已刪除!" + room)
+            }else{
+                userInRoom[room].splice(userInRoom[room].indexOf(socket.id), 1);
             }
-            userInRoom[room].splice(userInRoom[room].indexOf(socket.id), 1);
-            socket.leave(room);
+            socket.emit("delParticipantList", socket.id);
+            socket.to(room).emit("delParticipantList", socket.id);
+            socket.to(room).emit("participantDisconnected", socket.id);
         }
     });
 

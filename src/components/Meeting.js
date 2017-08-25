@@ -66,7 +66,7 @@ class Meeting extends React.Component {
     componentWillMount() {}
 
     componentDidMount() {
-        console.error("打你媽媽殺你全家")
+        console.log("打你媽媽殺你全家")
         this.getRoom();
         //初始化區
         socket.emit(
@@ -90,16 +90,18 @@ class Meeting extends React.Component {
         });
 
         socket.on("joinRoom", () => {
+            console.log("calling...")
             socket.emit("join", window.location.hash);
         });
 
         //連線區
         socket.on("newParticipantB", participantID => {
+            console.log("777777777")
             //接到新人加入的訊息時，檢查是否已有連線
-            if (this.props.connections[participantID]) {
-                console.log("已存在，刪除該連線，再重新連線");
-                this.props.dispatch(delParticipantConnection(participantID));
-            }
+            // if (this.props.connections[participantID]) {
+            //     console.log("已存在，刪除該連線，再重新連線");
+            //     this.props.dispatch(delParticipantConnection(participantID));
+            // }
             //主動建立連線
             let isInitiator = true;
             let peerConn = this.Chat.createPeerConnection(
@@ -124,12 +126,21 @@ class Meeting extends React.Component {
                 .catch(e => {
                     console.log("發生錯誤了看這裡: " + e);
                 });
-            //MeetingActions.addRemoteStreamURL
-            //console.log(peerConn.getRemoteStreams());
+            if(peerConn!== {}){
+                console.log(typeof peerConn);
+                console.log(peerConn)
+                console.log("幹你娘 有病")
+                let a = {
+                    id: participantID,
+                    connectionObj: peerConn
+                }
+                console.log(a)
+                this.props.dispatch(addParticipantConnection(a));
+            }
+            
         });
 
         socket.on("answer", (answer, sender) => {
-            console.log(this.props.connections[sender]);
             //console.log("answer" + JSON.stringify(answer));
             //console.log('有收到answer喔!');
             let settingPromise = this.props.connections[sender].setRemoteDescription(
@@ -156,9 +167,10 @@ class Meeting extends React.Component {
         });
 
         socket.on("offer", (offer, sender) => {
-            if (this.props.connections[sender]) {
-                this.props.dispatch(delParticipantConnection(sender));
-            }
+            console.log("888888888888")
+            // if (this.props.connections[sender]) {
+            //     this.props.dispatch(delParticipantConnection(sender));
+            // }
             //console.log('收到遠端的 offer，要建立連線並處理');
             let isInitiator = false;
             let peerConn = this.Chat.createPeerConnection(
@@ -250,7 +262,12 @@ class Meeting extends React.Component {
         if (this.state.isSounding) {
             this.Chat.toggleAudio();
         }
-        socket.emit("999")
+        socket.off("joinRoom")
+        .off("newParticipantB")
+        .off("answer")
+        .off("offer")
+        .off("onIceCandidateB")
+        .off("participantDisconnected")
     }
 
     getRoom() {
