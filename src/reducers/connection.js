@@ -1,7 +1,6 @@
 const initialState = {
     localUserID: "",
     localVideoURL: "",
-    connections: {}, //存放連線中的人的socket.id
     remoteStreamURL: {}, //存放連線中的人的stream
     candidateQueue: {}
 };

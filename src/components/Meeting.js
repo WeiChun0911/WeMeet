@@ -59,7 +59,8 @@ class Meeting extends React.Component {
             agendaList: [],
             hatColor: [],
             recognitionResult: "",
-            textRecord: []
+            textRecord: [],
+            connections: {}
         };
     }
 
@@ -126,33 +127,28 @@ class Meeting extends React.Component {
                 .catch(e => {
                     console.log("發生錯誤了看這裡: " + e);
                 });
-            if(peerConn!== {}){
-                console.log(typeof peerConn);
-                console.log(peerConn)
-                console.log("幹你娘 有病")
-                let a = {
-                    id: participantID,
-                    connectionObj: peerConn
+
+            this.setState({
+                connections: {
+                    ...this.state.connections,
+                    [participantID]: peerConn
                 }
-                console.log(a)
-                this.props.dispatch(addParticipantConnection(a));
-            }
-            
+            });
         });
 
         socket.on("answer", (answer, sender) => {
             //console.log("answer" + JSON.stringify(answer));
             //console.log('有收到answer喔!');
-            let settingPromise = this.props.connections[sender].setRemoteDescription(
+            let settingPromise = this.state.connections[sender].setRemoteDescription(
                 new RTCSessionDescription(answer)
             );
             //console.log(this.state.connections[sender].getRemoteStreams()[0]);
         });
 
         socket.on("onIceCandidateB", (candidate, sender) => {
-            if (this.props.connections[sender]) {
+            if (this.state.connections[sender]) {
                 //console.log('加到了!');
-                this.props.connections[sender]
+                this.state.connections[sender]
                     .addIceCandidate(new RTCIceCandidate(candidate))
                     .catch(e => {
                         console.log("發生錯誤了看這裡: " + e);
@@ -162,7 +158,6 @@ class Meeting extends React.Component {
                     id: sender,
                     candidate: candidate
                 }))
-                //console.log('不!來不及加');
             }
         });
 
@@ -179,10 +174,7 @@ class Meeting extends React.Component {
                 sender,
                 socket
             );
-            this.props.dispatch(addParticipantConnection({
-                id: sender,
-                connectionObj: peerConn
-            }));
+
             peerConn
                 .setRemoteDescription(new RTCSessionDescription(offer))
                 .then(() => {
@@ -201,12 +193,34 @@ class Meeting extends React.Component {
                 .catch(e => {
                     console.log("發生錯誤了看這裡:" + e);
                 });
+
+            this.setState({
+                connections: {
+                    ...this.state.connections,
+                    [sender]: peerConn
+                }
+            });
         });
 
         socket.on("participantDisconnected", (participantID) => {
+            
+            this.setState(
+                Object.assign({}, this.state, {
+                    connections: Object.keys(
+                        this.state.connections
+                    ).reduce((result, key) => {
+                        if (key !== participantID) {
+                            result[key] = this.state.connections[key];
+                        }
+                        return result;
+                    }, {})
+                })
+            )
             this.props.dispatch(delParticipantConnection(participantID));
             this.props.dispatch(delRemoteStreamURL(participantID));
         })
+
+        
 
         //0516 更新腦力激盪
         // socket.on("OpenBrainForAll", function(agenda) {
@@ -262,7 +276,8 @@ class Meeting extends React.Component {
         if (this.state.isSounding) {
             this.Chat.toggleAudio();
         }
-        socket.off("joinRoom")
+        socket.off("gotSocketID")
+        .off("joinRoom")
         .off("newParticipantB")
         .off("answer")
         .off("offer")
@@ -410,24 +425,20 @@ class Meeting extends React.Component {
 
     render() {
         let remoteVideo = [];
-        for (let id in this.props.connections) {
+        for (let id in this.state.connections) {
             if (this.props.remoteStreamURL) {
                 if (this.props.remoteStreamURL[id]) {
                     remoteVideo.push(
                         <div id="VideoUser-audio-on">
                             <video
-                                autoPlay={true}
                                 id={"videoSrc"}
                                 width="220"
                                 key={id}
-                            >
-                                <source
-                                    src={
-                                        this.props.remoteStreamURL[id]
+                                src={this.props.remoteStreamURL[id]
                                             ? this.props.remoteStreamURL[id]
-                                            : "沒加到啦幹"
-                                    }
-                                />
+                                            : "沒加到啦幹"}
+                                autoPlay={true}
+                            >
                             </video>
                         </div>
                     );
@@ -440,6 +451,7 @@ class Meeting extends React.Component {
                             id={"videoSrc"}
                             width="220"
                             key={id}
+                            autoPlay={true}
                         />
                     </div>
                 );
@@ -752,7 +764,6 @@ class Meeting extends React.Component {
 
 const mapStateToProps = state => {
     return {
-        connections: state.connection.connections,
         remoteStreamURL: state.connection.remoteStreamURL,
         candidateQueue: state.connection.candidateQueue
     };

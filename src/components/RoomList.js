@@ -13,8 +13,7 @@ class RoomList extends React.Component {
     }
 
     componentDidMount() {
-        console.warn("打你爸爸殺你叔叔")
-        
+
         // socket.on("setRoomList", list => {
         //     if (list.length) {
         //         this.props.dispatch(setRoomList(list));
