@@ -1,7 +1,9 @@
 "use strict";
 //第三方
 import React from "react";
-import { connect } from "react-redux";
+import {
+    connect
+} from "react-redux";
 import socket from "../socket";
 //lib
 import chat from "../lib/chat";
@@ -13,15 +15,17 @@ import ParticipantList from "./ParticipantList";
 //action
 import {
     addParticipantList,
-    delParticipantList,
     addParticipantConnection,
     delParticipantConnection,
-    addCandidateQueue
+    delRemoteStreamURL,
+    addCandidateQueue,
 } from "../actions/Actions";
 
+import Meeting1 from "./Meeting1.json"
+import Meeting2 from "./Meeting2.json"
+
 let configuration = {
-    iceServers: [
-        {
+    iceServers: [{
             url: "stun:stun.l.google.com:1302"
         },
         {
@@ -38,141 +42,9 @@ class Meeting extends React.Component {
         this.localUserID = "";
         this.videoList = [];
         this.getSystemTime = this.getSystemTime.bind(this);
-        this.Chat.toggleUserMedia = this.Chat.toggleUserMedia.bind(this.Chat);
-        this.languageList = [
-            ["Afrikaans", ["af-ZA"]],
-            ["Bahasa Indonesia", ["id-ID"]],
-            ["Bahasa Melayu", ["ms-MY"]],
-            ["Català", ["ca-ES"]],
-            ["Čeština", ["cs-CZ"]],
-            ["Dansk", ["da-DK"]],
-            ["Deutsch", ["de-DE"]],
-            [
-                "English",
-                ["en-AU", "Australia"],
-                ["en-CA", "Canada"],
-                ["en-IN", "India"],
-                ["en-NZ", "New Zealand"],
-                ["en-ZA", "South Africa"],
-                ["en-GB", "United Kingdom"],
-                ["en-US", "United States"]
-            ],
-            [
-                "Español",
-                ["es-AR", "Argentina"],
-                ["es-BO", "Bolivia"],
-                ["es-CL", "Chile"],
-                ["es-CO", "Colombia"],
-                ["es-CR", "Costa Rica"],
-                ["es-EC", "Ecuador"],
-                ["es-SV", "El Salvador"],
-                ["es-ES", "España"],
-                ["es-US", "Estados Unidos"],
-                ["es-GT", "Guatemala"],
-                ["es-HN", "Honduras"],
-                ["es-MX", "México"],
-                ["es-NI", "Nicaragua"],
-                ["es-PA", "Panamá"],
-                ["es-PY", "Paraguay"],
-                ["es-PE", "Perú"],
-                ["es-PR", "Puerto Rico"],
-                ["es-DO", "República Dominicana"],
-                ["es-UY", "Uruguay"],
-                ["es-VE", "Venezuela"]
-            ],
-            ["Euskara", ["eu-ES"]],
-            ["Filipino", ["fil-PH"]],
-            ["Français", ["fr-FR"]],
-            ["Galego", ["gl-ES"]],
-            ["Hrvatski", ["hr_HR"]],
-            ["IsiZulu", ["zu-ZA"]],
-            ["Íslenska", ["is-IS"]],
-            ["Italiano", ["it-IT", "Italia"], ["it-CH", "Svizzera"]],
-            ["Lietuvių", ["lt-LT"]],
-            ["Magyar", ["hu-HU"]],
-            ["Nederlands", ["nl-NL"]],
-            ["Norsk bokmål", ["nb-NO"]],
-            ["Polski", ["pl-PL"]],
-            ["Português", ["pt-BR", "Brasil"], ["pt-PT", "Portugal"]],
-            ["Română", ["ro-RO"]],
-            ["Slovenščina", ["sl-SI"]],
-            ["Slovenčina", ["sk-SK"]],
-            ["Suomi", ["fi-FI"]],
-            ["Svenska", ["sv-SE"]],
-            ["Tiếng Việt", ["vi-VN"]],
-            ["Türkçe", ["tr-TR"]],
-            ["Ελληνικά", ["el-GR"]],
-            ["български", ["bg-BG"]],
-            ["Pусский", ["ru-RU"]],
-            ["Српски", ["sr-RS"]],
-            ["Українська", ["uk-UA"]],
-            ["한국어", ["ko-KR"]],
-            [
-                "中文",
-                ["cmn-Hans-CN", "普通话 (中国大陆)"],
-                ["cmn-Hans-HK", "普通话 (香港)"],
-                ["cmn-Hant-TW", "中文 (台灣)"],
-                ["yue-Hant-HK", "粵語 (香港)"]
-            ],
-            ["日本語", ["ja-JP"]],
-            ["हिन्दी", ["hi-IN"]],
-            ["ภาษาไทย", ["th-TH"]]
-        ];
-        this.hatList = [
-            [
-                1,
-                "WhiteHat",
-                [
-                    "白色代表中性與客觀。",
-                    "白帽只會關心客觀的事實和數字。",
-                    "白帽不會受到感情因素的影響，不對事實加以論述",
-                    "白帽不會將其作為達成某種目的的手段，而僅僅是平白地敘述出來，否則會失去其客觀的立場。",
-                    "相關的例子像是：「請告訴我這個月的銷售數量」。"
-                ]
-            ],
-            [
-                2,
-                "GreenHat",
-                [
-                    "綠色代表生機勃勃、茁壯與成長。象徵創新與新觀念",
-                    "綠帽試圖擺脫舊想法，以便找出更好的新想法。",
-                    "綠帽思維需要新思想、新方法和更多的選擇",
-                    "綠帽只需要作出時間與努力產生新想法。"
-                ]
-            ],
-            [
-                3,
-                "BlueHat",
-                [
-                    "藍色代表冷靜，象徵控制與調整。",
-                    "藍帽需要利用其他顏色的帽子",
-                    "它定義主題，對各種思維實行集中，並對問題進行分類，決定需要執行的思維任務。",
-                    "藍帽負責概要、總攬和結論",
-                    "監督遊戲的規則得以遵守，是一種約束的存在。它就像是秩序的管理者一樣。"
-                ]
-            ],
-            [
-                4,
-                "RedHat",
-                [
-                    "紅色代表生氣、發怒與各種感情。",
-                    "紅色討論的是思維中的情緒、感覺以及其他非理性方面",
-                    "例子：「我有一種直覺，他的行銷方案最終會失敗」",
-                    "例子：「我感覺她是所有人當中，最有洞見的人」"
-                ]
-            ],
-            [
-                5,
-                "BlackHat",
-                [
-                    "黑色代表憂鬱和否定。象徵謹慎、批評。",
-                    "黑帽討論否定方面的問題，它消極且缺乏情感。",
-                    "黑帽強調的否定只限於在邏輯否定這一點上。",
-                    "黑帽大多對提出的數字和報告提出疑義。",
-                    "例如：「從過去的經驗來看，街頭宣傳對我們的品牌知名度沒有任何的效益。"
-                ]
-            ]
-        ];
+        //this.Chat.toggleUserMedia = this.Chat.toggleUserMedia.bind(this.Chat);
+        this.languageList = Meeting1
+        this.hatList = Meeting2
         this.state = {
             time: "",
             roomURL: "沒東西欸?",
@@ -187,48 +59,50 @@ class Meeting extends React.Component {
             agendaList: [],
             hatColor: [],
             recognitionResult: "",
-            textRecord: []
+            textRecord: [],
+            connections: {}
         };
     }
 
     componentWillMount() {}
 
     componentDidMount() {
+        console.log("打你媽媽殺你全家")
+        this.getRoom();
         //初始化區
+        socket.emit(
+            "IAmAt",
+            window.location.pathname,
+            window.location.hash
+        );
         socket.emit("giveMeMySocketId");
+
         this.getSystemTime();
         this.timer = setInterval(this.getSystemTime, 1000);
-        this.getRoom();
         socket.on("gotSocketID", id => {
             this.localUserID = id;
             //this.props.dispatch(addParticipant(this.localUserID));
             this.Recognizer.id = this.localUserID;
             this.Chat.getUserMedia(
                 this.localUserID,
-                window.location.href.substring(30),
+                window.location.hash,
                 socket
             );
         });
 
         socket.on("joinRoom", () => {
-            socket.emit("join", window.location.href.substring(30));
-        });
-
-        socket.on("whereAreU", function() {
-            socket.emit(
-                "IAmAt",
-                window.location.pathname,
-                window.location.href.substring(30)
-            );
+            console.log("calling...")
+            socket.emit("join", window.location.hash);
         });
 
         //連線區
         socket.on("newParticipantB", participantID => {
+            console.log("777777777")
             //接到新人加入的訊息時，檢查是否已有連線
-            if (this.props.connections[participantID]) {
-                console.log("已存在，刪除該連線，再重新連線");
-                this.props.dispatch(delParticipantConnection(participantID));
-            }
+            // if (this.props.connections[participantID]) {
+            //     console.log("已存在，刪除該連線，再重新連線");
+            //     this.props.dispatch(delParticipantConnection(participantID));
+            // }
             //主動建立連線
             let isInitiator = true;
             let peerConn = this.Chat.createPeerConnection(
@@ -237,16 +111,11 @@ class Meeting extends React.Component {
                 participantID,
                 socket
             );
-            this.props.dispatch(
-                addParticipantConnection({
-                    id: participantID,
-                    connectionObj: peerConn
-                })
-            );
+
             peerConn
                 .createOffer()
                 .then(offer => {
-                    console.log("offer" + JSON.stringify(offer));
+                    //console.log("offer" + JSON.stringify(offer));
                     peerConn.setLocalDescription(offer);
                     socket.emit(
                         "offerRemotePeer",
@@ -258,38 +127,45 @@ class Meeting extends React.Component {
                 .catch(e => {
                     console.log("發生錯誤了看這裡: " + e);
                 });
-            //MeetingActions.addRemoteStreamURL
-            //console.log(peerConn.getRemoteStreams());
+
+            this.setState({
+                connections: {
+                    ...this.state.connections,
+                    [participantID]: peerConn
+                }
+            });
         });
 
         socket.on("answer", (answer, sender) => {
-            console.log(this.props.connections[sender]);
-            console.log("answer" + JSON.stringify(answer));
+            //console.log("answer" + JSON.stringify(answer));
             //console.log('有收到answer喔!');
-            let settingPromise = this.props.connections[sender].setRemoteDescription(
+            let settingPromise = this.state.connections[sender].setRemoteDescription(
                 new RTCSessionDescription(answer)
             );
             //console.log(this.state.connections[sender].getRemoteStreams()[0]);
         });
 
         socket.on("onIceCandidateB", (candidate, sender) => {
-            if (this.props.connections[sender]) {
+            if (this.state.connections[sender]) {
                 //console.log('加到了!');
-                this.props.connections[sender]
+                this.state.connections[sender]
                     .addIceCandidate(new RTCIceCandidate(candidate))
                     .catch(e => {
                         console.log("發生錯誤了看這裡: " + e);
                     });
             } else {
-                this.props.dispatch(addCandidateQueue({ id: sender, candidate:candidate  }))
-                //console.log('不!來不及加');
+                this.props.dispatch(addCandidateQueue({
+                    id: sender,
+                    candidate: candidate
+                }))
             }
         });
 
         socket.on("offer", (offer, sender) => {
-            if (this.props.connections[sender]) {
-                this.props.dispatch(delParticipantConnection(sender));
-            }
+            console.log("888888888888")
+            // if (this.props.connections[sender]) {
+            //     this.props.dispatch(delParticipantConnection(sender));
+            // }
             //console.log('收到遠端的 offer，要建立連線並處理');
             let isInitiator = false;
             let peerConn = this.Chat.createPeerConnection(
@@ -298,7 +174,7 @@ class Meeting extends React.Component {
                 sender,
                 socket
             );
-            this.props.dispatch(addParticipantConnection({ id: sender, connectionObj: peerConn }));
+
             peerConn
                 .setRemoteDescription(new RTCSessionDescription(offer))
                 .then(() => {
@@ -317,7 +193,34 @@ class Meeting extends React.Component {
                 .catch(e => {
                     console.log("發生錯誤了看這裡:" + e);
                 });
+
+            this.setState({
+                connections: {
+                    ...this.state.connections,
+                    [sender]: peerConn
+                }
+            });
         });
+
+        socket.on("participantDisconnected", (participantID) => {
+            
+            this.setState(
+                Object.assign({}, this.state, {
+                    connections: Object.keys(
+                        this.state.connections
+                    ).reduce((result, key) => {
+                        if (key !== participantID) {
+                            result[key] = this.state.connections[key];
+                        }
+                        return result;
+                    }, {})
+                })
+            )
+            this.props.dispatch(delParticipantConnection(participantID));
+            this.props.dispatch(delRemoteStreamURL(participantID));
+        })
+
+        
 
         //0516 更新腦力激盪
         // socket.on("OpenBrainForAll", function(agenda) {
@@ -350,7 +253,9 @@ class Meeting extends React.Component {
 
         socket.on("videoFromDB", arrayBuffer => {
             //console.log("Getting blob form DB and server!!");
-            let blob = new Blob([arrayBuffer], { type: "video/webm" });
+            let blob = new Blob([arrayBuffer], {
+                type: "video/webm"
+            });
             let url = window.URL.createObjectURL(blob);
             let a = document.createElement("a");
             document.body.appendChild(a);
@@ -364,15 +269,20 @@ class Meeting extends React.Component {
 
     componentWillUnmount() {
         clearInterval(this.timer);
-        window.onbeforeunload = function() {
-            var prevent = false;
-            events.emit("will-leave", {
-                preventDefault: function(reason) {
-                    prevent = reason;
-                }
-            });
-            if (prevent) return prevent;
-        };
+        socket.emit("leaveRoom");
+        if (this.state.isStreaming) {
+            this.Chat.toggleUserMedia();
+        }
+        if (this.state.isSounding) {
+            this.Chat.toggleAudio();
+        }
+        socket.off("gotSocketID")
+        .off("joinRoom")
+        .off("newParticipantB")
+        .off("answer")
+        .off("offer")
+        .off("onIceCandidateB")
+        .off("participantDisconnected")
     }
 
     getRoom() {
@@ -515,24 +425,20 @@ class Meeting extends React.Component {
 
     render() {
         let remoteVideo = [];
-        for (let id in this.props.connections) {
+        for (let id in this.state.connections) {
             if (this.props.remoteStreamURL) {
-                if (this.props.remoteStreamURL[id]) {f
+                if (this.props.remoteStreamURL[id]) {
                     remoteVideo.push(
                         <div id="VideoUser-audio-on">
                             <video
-                                autoPlay={true}
                                 id={"videoSrc"}
                                 width="220"
                                 key={id}
-                            >
-                                <source
-                                    src={
-                                        this.props.remoteStreamURL[id]
+                                src={this.props.remoteStreamURL[id]
                                             ? this.props.remoteStreamURL[id]
-                                            : "沒加到啦幹"
-                                    }
-                                />
+                                            : "沒加到啦幹"}
+                                autoPlay={true}
+                            >
                             </video>
                         </div>
                     );
@@ -545,6 +451,7 @@ class Meeting extends React.Component {
                             id={"videoSrc"}
                             width="220"
                             key={id}
+                            autoPlay={true}
                         />
                     </div>
                 );
@@ -667,7 +574,7 @@ class Meeting extends React.Component {
                                         ? "video-off"
                                         : "video-on"
                                 }
-                                onClick={this.Chat.toggleUserMedia}
+                                onClick={()=>{this.Chat.toggleUserMedia()}}
                             >
                                 {this.state.isStreaming ? "停止視訊" : "開起視訊"}
                             </button>
@@ -857,7 +764,6 @@ class Meeting extends React.Component {
 
 const mapStateToProps = state => {
     return {
-        connections: state.connection.connections,
         remoteStreamURL: state.connection.remoteStreamURL,
         candidateQueue: state.connection.candidateQueue
     };

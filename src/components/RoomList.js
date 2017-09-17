@@ -4,7 +4,7 @@ import { setRoomList, addRoom, delRoom } from "../actions/Actions";
 // import FriendListActions from '../actions/FriendListActions';
 import socket from "../socket";
 import { connect } from "react-redux";
-import { Link, withRouter } from "react-router-dom";
+import { withRouter } from "react-router";
 
 class RoomList extends React.Component {
     constructor(props) {
@@ -13,23 +13,26 @@ class RoomList extends React.Component {
     }
 
     componentDidMount() {
-        socket.on("setRoomList", list => {
-            if (list.length) {
-                this.props.dispatch(setRoomList(list));
-            }
-        });
 
-        socket.on("addRoom", room => {
-            this.props.dispatch(addRoom(room));
-        });
+        // socket.on("setRoomList", list => {
+        //     if (list.length) {
+        //         this.props.dispatch(setRoomList(list));
+        //     }
+        // });
 
-        socket.on("delRoom", room => {
-            this.props.dispatch(delRoom(room));
-        });
+        // socket.on("addRoom", room => {
+        //     this.props.dispatch(addRoom(room));
+        // });
+
+        // socket.on("delRoom", room => {
+        //     this.props.dispatch(delRoom(room));
+        // });
     }
 
-    componentWillMount() {}
-
+    componentWillUnmount(){
+        console.error("打你爸爸殺你叔叔")
+        //socket.removeAllListeners()
+    }
     //按下enter後的事件處理
     handleCreateRoom_Enter(e) {
         if (this.refs.roomNum.value) {
@@ -51,21 +54,24 @@ class RoomList extends React.Component {
 
     handleCreateRoom_Click(e) {
         if (this.refs.roomNum.value) {
+            e.preventDefault();
             this.roomName = this.refs.roomNum.value;
+            this.props.history.push("/meeting#" + this.roomName);
         } else {
             let r = confirm("你沒有輸入房名喔! 我們給你一組亂碼好嗎?");
-            if (r == false) {
+            if (r == true) {
+                this.props.history.push("/meeting#" + this.roomName);
+            } else {
                 e.preventDefault();
             }
         }
     }
 
     handleJoinRoom(room) {
-        // window.location.href = this.meetingURL + this.refs.roomNum.value;
+        this.props.history.push("/meeting" + room);
     }
 
     render() {
-        console.log(this.props);
         let room = this.props.roomList.map(room => {
             return (
                 <div id="roomProp">
@@ -74,9 +80,9 @@ class RoomList extends React.Component {
                     </div>
                     <div
                         id="room_name"
-                        onClick={this.handleJoinRoom.bind(this)}
+                        onClick={()=>{this.handleJoinRoom(room)}}
                     >
-                        <Link>{room.substring(30)}</Link>
+                        {room}
                     </div>
                 </div>
             );
