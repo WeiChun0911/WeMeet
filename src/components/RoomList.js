@@ -123,4 +123,4 @@ const mapStateToProps = state => {
     };
 };
 
-export default connect(mapStateToProps)(withRouter(RoomList));
+export default withRouter(connect(mapStateToProps)(RoomList));

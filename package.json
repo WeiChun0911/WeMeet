@@ -9,7 +9,7 @@
   "main": "server.js",
   "scripts": {
     "start": "yarn build &&yarn server",
-    "build": "webpack -p --config webpack.prod.config.js",
+    "watch": "webpack -w --config webpack.prod.config.js",
     "server": "node server.js",
     "dev": "webpack-dev-server --config webpack.dev.config.js"
   },
