@@ -39,7 +39,7 @@ const option = {
 //對https Server內傳入express的處理物件
 const server = require("https").createServer(option,app);
 const io = require("socket.io")(server);
-server.listen(8787);
+server.listen(8888);
 console.log("已啟動伺服器!");
 
 // app.get("/api/db/history", (req, res) => {

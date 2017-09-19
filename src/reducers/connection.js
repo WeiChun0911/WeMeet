@@ -2,7 +2,6 @@ const initialState = {
     localUserID: "",
     localVideoURL: "",
     remoteStreamURL: {}, //存放連線中的人的stream
-    candidateQueue: {}
 };
 
 export default function connection(state = initialState, action) {
@@ -32,13 +31,28 @@ export default function connection(state = initialState, action) {
                 }, {})
             });
         case "addCandidateQueue":
-            return {
-                ...state,
-                candidateQueue: {
-                    ...state.candidateQueue,
-                    [action.data.id]: action.data.candidate
-                }
-            };
+        //如果已經有這個人的屬性，就把物件填進陣列裡
+            if(state.candidateQueue[action.data.id]){
+                return {
+                    ...state,
+                    candidateQueue: {
+                        ...state.candidateQueue,
+                        [action.data.id]: [
+                            ...state.candidateQueue[action.data.id],
+                            action.data.candidate
+                        ]
+                    }
+                };
+            } else {
+                return {
+                    ...state,
+                    candidateQueue: {
+                        ...state.candidateQueue,
+                        [action.data.id]: [action.data.candidate]
+                    }
+                };
+            }
+            
         case "addRemoteStreamURL":
             return {
                 ...state,

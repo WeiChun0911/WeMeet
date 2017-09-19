@@ -30,7 +30,6 @@ class RoomList extends React.Component {
     }
 
     componentWillUnmount(){
-        console.error("打你爸爸殺你叔叔")
         //socket.removeAllListeners()
     }
     //按下enter後的事件處理

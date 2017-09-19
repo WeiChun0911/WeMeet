@@ -98,3 +98,10 @@ export function delRemoteStreamURL(id){
 		data:id
 	}
 }
+
+export function addCandidateQueue(candidateObj){
+	return {
+		type:"addCandidateQueue",
+		data: candidateObj
+	}
+}

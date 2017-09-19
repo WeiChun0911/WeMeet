@@ -13,19 +13,17 @@ let Chat = {
         let msgChannels = {};
         //取得使用者端的影像
         Chat.getUserMedia = (id, room, socket) => {
-            navigator.mediaDevices
+             navigator.mediaDevices
                 .getUserMedia({
                     video: true,
                     audio: true
                 })
                 .then(stream => {
                     if (
-                        stream.getVideoTracks().length > 0 ||
-                        stream.getAudioTracks().length > 0
+                        stream.getVideoTracks().length > 0 || stream.getAudioTracks().length > 0
                     ) {
                         let videoURL = window.URL.createObjectURL(stream);
                         localStream = stream;
-                        socket.emit("newParticipantA", id, room);
                         if (stream.getVideoTracks().length > 0) {
                             Meeting.setState({
                                 isStreaming: true,
@@ -41,15 +39,16 @@ let Chat = {
                                 localVideoURL: videoURL
                             });
                         }
+                        socket.emit("newParticipantA", id, room);
                     } else {
                         console.log("沒聲音也沒影像欸QQ? 我覺得不行");
                         window.history.back();
                     }
                 })
                 .catch(e => {
+                    alert(e)
                     //alert("無法偵測到您的麥克風或鏡頭，請重新授權，WeMeet基於WebRTC連線，必需要其中");
-                    alert(e);
-                    //window.history.back();
+                    window.location.replace('https://140.123.175.95:8888');
                 });
         };
 
@@ -70,24 +69,50 @@ let Chat = {
             isInitiator,
             config,
             remotePeer,
-            socket
+            socket,
+            isOfferer
         ) => {
             let peerConn = new RTCPeerConnection(config);
+            console.log("new PeerConnection,Success (a)")
             if (localStream) {
                 peerConn.addStream(localStream);
             }
-
-            if (Meeting.props.candidateQueue) {
-                if (Meeting.props.candidateQueue[Meeting.localUserID]) {
-                    Meeting.props.candidateQueue[
-                        Meeting.localUserID
-                    ].map(candidateObj => {
-                        peerConn.addIceCandidate(
-                            new RTCIceCandidate(candidateObj)
-                        );
-                    });
-                }
+            // if (localStream && !isOfferer){
+            //     Meeting.setLocalStream(localStream);
+            // }
+            // if (Meeting.props.candidateQueue) {
+            //     if (Meeting.props.candidateQueue[Meeting.localUserID]) {
+            //         Meeting.props.candidateQueue[
+            //             Meeting.localUserID
+            //         ].map(candidateObj => {
+            //             peerConn.addIceCandidate(
+            //                 new RTCIceCandidate(candidateObj)
+            //             );
+            //         });
+            //     }
+            // }
+            if(Meeting.candidateQueue[remotePeer]){
+                Meeting.candidateQueue[remotePeer].map((candidate)=>{
+                    Meeting.state.connections[remotePeer].addIceCandidate(new RTCIceCandidate(candidate))
+                })
+                //delete Meeting.candidateQueue[sender]                       
             }
+
+            // for (let id in MeetingStore.state.candidateQueue) {
+            //     console.log('加回來');
+            //     if (id == remotePeer) {
+            //         peerConn.addIceCandidate(new RTCIceCandidate(MeetingStore.state.candidateQueue[id]));
+            //     }
+            // }
+
+            peerConn.onaddstream = event => {
+                console.error("on Remote Stream");
+                let url = URL.createObjectURL(event.stream);
+                Meeting.props.dispatch(addRemoteStreamURL({
+                        id:remotePeer,
+                        url:url
+                    }))
+            };
 
             // send any ice candidates to the other peer
             peerConn.onicecandidate = event => {
@@ -102,17 +127,6 @@ let Chat = {
                 }
             };
 
-            peerConn.onaddstream = event => {
-                console.log("收到遠端加入影像");
-                let url = URL.createObjectURL(event.stream);
-                Meeting.props.dispatch(
-                    addRemoteStreamURL({
-                        id: remotePeer,
-                        url: url
-                    })
-                );
-            };
-
             peerConn.onremovestream = event => {
                 console.log("收到遠端離開");
                 // console.log('Remote stream removed. Event: ', event);
@@ -121,10 +135,13 @@ let Chat = {
 
             //如果是開啟P2P的人
             if (isInitiator) {
+                console.error("???????????")
                 //console.log('Createing Data Channel');
                 //建立資料傳送頻道、訊息傳送頻道
                 let fileChannel = peerConn.createDataChannel("files");
                 let msgChannel = peerConn.createDataChannel("messages");
+                console.log("createDataChannel,Success (b)")
+
                 fileChannels[remotePeer] = fileChannel;
                 msgChannels[remotePeer] = msgChannel;
 
@@ -158,6 +175,7 @@ let Chat = {
                         fileChannels[remotePeer] = fileChannel;
                         console.log("joined channel" + event.channel.label);
                         onDataChannelCreated(fileChannel);
+
                     } else if (event.channel.label == "messages") {
                         let msgChannel = event.channel;
                         msgChannels[remotePeer] = msgChannel;
@@ -166,12 +184,12 @@ let Chat = {
                     }
                 };
             }
-            Meeting.props.dispatch(
-                addParticipantConnection({
-                    id: remotePeer,
-                    connectionObj: peerConn
-                })
-            );
+            // Meeting.props.dispatch(
+            //     addParticipantConnection({
+            //         id: remotePeer,
+            //         connectionObj: peerConn
+            //     })
+            // );
             return peerConn;
         };
 

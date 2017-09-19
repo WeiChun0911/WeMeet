@@ -1,9 +1,7 @@
 "use strict";
 //第三方
 import React from "react";
-import {
-    connect
-} from "react-redux";
+import { connect } from "react-redux";
 import socket from "../socket";
 //lib
 import chat from "../lib/chat";
@@ -17,16 +15,24 @@ import {
     addParticipantList,
     addParticipantConnection,
     delParticipantConnection,
+    addRemoteStreamURL,
     delRemoteStreamURL,
-    addCandidateQueue,
+    addCandidateQueue
 } from "../actions/Actions";
 
-import Meeting1 from "./Meeting1.json"
-import Meeting2 from "./Meeting2.json"
+import Meeting1 from "./Meeting1.json";
+import Meeting2 from "./Meeting2.json";
 
 let configuration = {
-    iceServers: [{
-            url: "stun:stun.l.google.com:1302"
+    iceServers: [
+        {
+            url: [
+                "stun.l.google.com:19302",
+                "stun1.l.google.com:19302",
+                "stun2.l.google.com:19302",
+                "stun3.l.google.com:19302",
+                "stun4.l.google.com:19302"
+            ]
         },
         {
             url: "stun:stun.services.mozilla.com"
@@ -43,8 +49,10 @@ class Meeting extends React.Component {
         this.videoList = [];
         this.getSystemTime = this.getSystemTime.bind(this);
         //this.Chat.toggleUserMedia = this.Chat.toggleUserMedia.bind(this.Chat);
-        this.languageList = Meeting1
-        this.hatList = Meeting2
+        this.languageList = Meeting1;
+        this.hatList = Meeting2;
+        this.setRemoteFinished = [];
+        this.candidateQueue = {};
         this.state = {
             time: "",
             roomURL: "沒東西欸?",
@@ -67,18 +75,15 @@ class Meeting extends React.Component {
     componentWillMount() {}
 
     componentDidMount() {
-        console.log("打你媽媽殺你全家")
+        window.connections = {};
         this.getRoom();
         //初始化區
-        socket.emit(
-            "IAmAt",
-            window.location.pathname,
-            window.location.hash
-        );
+        socket.emit("IAmAt", window.location.pathname, window.location.hash);
         socket.emit("giveMeMySocketId");
 
         this.getSystemTime();
         this.timer = setInterval(this.getSystemTime, 1000);
+
         socket.on("gotSocketID", id => {
             this.localUserID = id;
             //this.props.dispatch(addParticipant(this.localUserID));
@@ -91,31 +96,40 @@ class Meeting extends React.Component {
         });
 
         socket.on("joinRoom", () => {
-            console.log("calling...")
             socket.emit("join", window.location.hash);
         });
 
         //連線區
         socket.on("newParticipantB", participantID => {
-            console.log("777777777")
+            console.log("有人加入，Createing OFFER");
             //接到新人加入的訊息時，檢查是否已有連線
-            // if (this.props.connections[participantID]) {
-            //     console.log("已存在，刪除該連線，再重新連線");
-            //     this.props.dispatch(delParticipantConnection(participantID));
-            // }
+            if (window.connections[participantID]) {
+                console.log("已存在，刪除該連線，再重新連線");
+                window.connections = {
+                    ...window.connections,
+                    [participantID]: {}
+                };
+
+                //this.props.dispatch(delParticipantConnection(participantID));
+            }
             //主動建立連線
             let isInitiator = true;
             let peerConn = this.Chat.createPeerConnection(
                 isInitiator,
                 configuration,
                 participantID,
-                socket
+                socket,
+                1
             );
-
+            window.connections = {
+                ...window.connections,
+                [participantID]: peerConn
+            };
+            console.error("???????");
             peerConn
                 .createOffer()
                 .then(offer => {
-                    //console.log("offer" + JSON.stringify(offer));
+                    console.log("offer" + JSON.stringify(offer));
                     peerConn.setLocalDescription(offer);
                     socket.emit(
                         "offerRemotePeer",
@@ -127,45 +141,91 @@ class Meeting extends React.Component {
                 .catch(e => {
                     console.log("發生錯誤了看這裡: " + e);
                 });
-
-            this.setState({
-                connections: {
-                    ...this.state.connections,
-                    [participantID]: peerConn
-                }
-            });
+            // peerConn.createOffer(
+            //     (offer)=>{
+            //         console.log("Create Offer, Success(d)")
+            //         peerConn.setLocalDescription(offer,
+            //             ()=>{
+            //                 console.log("set LocalDesc, Success(e)")
+            //                 console.log(offer)
+            //                 socket.emit(
+            //                     "offerRemotePeer",
+            //                     offer,
+            //                     this.localUserID,
+            //                     participantID
+            //                 );
+            //                 console.log("socket emit offer, Success(f)")
+            //             },
+            //             ()=>{
+            //                 console.log("set LocalDesc, Failed(e)")
+            //             }
+            //         );
+            //     },
+            //     ()=>{
+            //         console.log("Create Offer, Failed(d)")
+            //     },{
+            //         offerToReceiveAudio: true,
+            //         offerToReceiveVideo: true
+            //     }
+            // )
         });
 
         socket.on("answer", (answer, sender) => {
-            //console.log("answer" + JSON.stringify(answer));
+            console.log("answer" + JSON.stringify(answer));
             //console.log('有收到answer喔!');
-            let settingPromise = this.state.connections[sender].setRemoteDescription(
+            window.connections[sender].setRemoteDescription(
                 new RTCSessionDescription(answer)
             );
-            //console.log(this.state.connections[sender].getRemoteStreams()[0]);
-        });
+            //console.log("answer" + JSON.stringify(answer));
+            //console.log('有收到answer喔!');
 
-        socket.on("onIceCandidateB", (candidate, sender) => {
-            if (this.state.connections[sender]) {
-                //console.log('加到了!');
-                this.state.connections[sender]
-                    .addIceCandidate(new RTCIceCandidate(candidate))
-                    .catch(e => {
-                        console.log("發生錯誤了看這裡: " + e);
-                    });
-            } else {
-                this.props.dispatch(addCandidateQueue({
-                    id: sender,
-                    candidate: candidate
-                }))
-            }
+            // window.connections[sender].setRemoteDescription(
+            //     new RTCSessionDescription(answer),
+            //     ()=>{
+            //         console.log("On answer ,setRemote, Success(g)")
+            //         console.log("加一波iceCandidate(h)")
+            //         if(this.candidateQueue[sender]){
+            //             this.candidateQueue[sender].map((candidate)=>{
+            //                 window.connections[sender].addIceCandidate(new RTCIceCandidate(candidate))
+            //             })
+            //             //delete this.candidateQueue[sender]
+            //         }
+            //         this.setRemoteFinished.push(sender);
+            //         console.log("開啟自動加iceCandidate(i)")
+            //         // Object.keys(this.props.candidateQueue).map((key)=>{
+            //         //     if(key == sender){
+            //         //         console.log("add Candidiate(X)")
+            //         //         this.props.candidateQueue[sender].map(()=>{
+
+            //         //         })
+            //         //         peerConn.addIceCandidate(this.props.candidateQueue[sender])
+            //         //     }
+            //         // })
+            //     },
+            //     (error)=>{
+            //         console.log("On answer ,setRemote, Failed(f)")
+            //         console.log(error)
+            //     },
+            //     {
+            //         offerToReceiveAudio: true,
+            //         offerToReceiveVideo: true
+            //     }
+            // );
+            //console.log(window.connections[sender].getRemoteStreams()[0]);
         });
 
         socket.on("offer", (offer, sender) => {
-            console.log("888888888888")
-            // if (this.props.connections[sender]) {
-            //     this.props.dispatch(delParticipantConnection(sender));
-            // }
+            console.log("on offer!");
+            //檢查是否已有連線
+            if (window.connections[sender]) {
+                console.log("已存在，刪除該連線，再重新連線");
+                window.connections = {
+                    ...window.connections,
+                    [sender]: {}
+                };
+
+                //this.props.dispatch(delParticipantConnection(participantID));
+            }
             //console.log('收到遠端的 offer，要建立連線並處理');
             let isInitiator = false;
             let peerConn = this.Chat.createPeerConnection(
@@ -174,6 +234,11 @@ class Meeting extends React.Component {
                 sender,
                 socket
             );
+
+            window.connections = {
+                ...window.connections,
+                [sender]: peerConn
+            };
 
             peerConn
                 .setRemoteDescription(new RTCSessionDescription(offer))
@@ -193,34 +258,99 @@ class Meeting extends React.Component {
                 .catch(e => {
                     console.log("發生錯誤了看這裡:" + e);
                 });
+            // peerConn.setRemoteDescription(
+            //         new RTCSessionDescription(offer),
+            //         ()=>{
+            //             console.log("setRemoteDesc, Success(b)")
 
-            this.setState({
-                connections: {
-                    ...this.state.connections,
-                    [sender]: peerConn
-                }
-            });
+            //             peerConn.createAnswer(
+            //                 (answer)=>{
+            //                     console.log("createAnswer, Success(c)");
+            //                     peerConn.setLocalDescription(
+            //                         answer,
+            //                         ()=>{
+            //                             console.log("setLocalDesc, Success(d), ANSWER:")
+            //                             console.log(answer)
+            //                             socket.emit(
+            //                                 "answerRemotePeer",
+            //                                 answer,
+            //                                 this.localUserID,
+            //                                 sender
+            //                             );
+
+            //                             console.log("send Answer to Remote, Success(e)")
+            //                             console.log("加一波iceCandidate(f)")
+            //                             if(this.candidateQueue[sender]){
+            //                                 this.candidateQueue[sender].map((candidate)=>{
+            //                                     window.connections[sender].addIceCandidate(new RTCIceCandidate(candidate))
+            //                                 });
+            //                                 delete this.candidateQueue[sender]
+            //                             }
+            //                             this.setRemoteFinished.push(sender);
+            //                             console.log("開啟自動加iceCandidate(g)")
+            //                         },
+            //                         ()=>{
+            //                              console.log("setLocalDesc, Failed(d)")
+            //                         });
+            //                 },
+            //                 (error)=>{
+            //                     console.log("createAnswer, Failed(c)")
+            //                 });
+            //         },
+            //         ()=>{
+            //             console.error("setRemoteDesc, Failed(b)")
+            //         });
         });
 
-        socket.on("participantDisconnected", (participantID) => {
-            
-            this.setState(
-                Object.assign({}, this.state, {
+        socket.on("onIceCandidateB", (candidate, sender) => {
+            // if(this.setRemoteFinished.includes(sender)){
+            //     window.connections[sender].addIceCandidate(new RTCIceCandidate(candidate))
+            // } else {
+            //     console.log("onIceCandidate，存起來先，set完remote再加")
+            //     if(this.candidateQueue[sender]){
+            //         this.candidateQueue[sender].push(candidate);
+            //     } else {
+            //         this.candidateQueue[sender]=[candidate]
+            //     }
+
+            // }
+            console.log("收到遠端的candidate，要加入: " + JSON.stringify(candidate));
+            if (window.connections[sender]) {
+                console.log("加到了!");
+                window.connections[sender]
+                    .addIceCandidate(new RTCIceCandidate(candidate))
+                    .catch(e => {
+                        console.log("發生錯誤了看這裡: " + e);
+                    });
+            } else {
+                console.log("不!來不及加");
+                if (this.candidateQueue[sender]) {
+                    console.log("111");
+                    this.candidateQueue[sender].push(candidate);
+                } else {
+                    console.log("222");
+                    this.candidateQueue[sender] = [candidate];
+                }
+            }
+        });
+
+        socket.on("participantDisconnected", participantID => {
+            window.connections = Object.assign(
+                {},
+                {
                     connections: Object.keys(
-                        this.state.connections
+                        window.connections
                     ).reduce((result, key) => {
                         if (key !== participantID) {
-                            result[key] = this.state.connections[key];
+                            result[key] = window.connections[key];
                         }
                         return result;
                     }, {})
-                })
-            )
-            this.props.dispatch(delParticipantConnection(participantID));
+                }
+            );
+            // this.props.dispatch(delParticipantConnection(participantID));
             this.props.dispatch(delRemoteStreamURL(participantID));
-        })
-
-        
+        });
 
         //0516 更新腦力激盪
         // socket.on("OpenBrainForAll", function(agenda) {
@@ -276,13 +406,14 @@ class Meeting extends React.Component {
         if (this.state.isSounding) {
             this.Chat.toggleAudio();
         }
-        socket.off("gotSocketID")
-        .off("joinRoom")
-        .off("newParticipantB")
-        .off("answer")
-        .off("offer")
-        .off("onIceCandidateB")
-        .off("participantDisconnected")
+        socket
+            .off("gotSocketID")
+            .off("joinRoom")
+            .off("newParticipantB")
+            .off("answer")
+            .off("offer")
+            .off("onIceCandidateB")
+            .off("participantDisconnected");
     }
 
     getRoom() {
@@ -425,7 +556,7 @@ class Meeting extends React.Component {
 
     render() {
         let remoteVideo = [];
-        for (let id in this.state.connections) {
+        for (let id in window.connections) {
             if (this.props.remoteStreamURL) {
                 if (this.props.remoteStreamURL[id]) {
                     remoteVideo.push(
@@ -434,14 +565,20 @@ class Meeting extends React.Component {
                                 id={"videoSrc"}
                                 width="220"
                                 key={id}
-                                src={this.props.remoteStreamURL[id]
-                                            ? this.props.remoteStreamURL[id]
-                                            : "沒加到啦幹"}
                                 autoPlay={true}
                             >
+                                <source
+                                    src={
+                                        this.props.remoteStreamURL[id]
+                                            ? this.props.remoteStreamURL[id]
+                                            : "沒加到啦幹"
+                                    }
+                                />
                             </video>
                         </div>
                     );
+                } else {
+                    //console.log("user not exist")
                 }
             } else {
                 remoteVideo.push(
@@ -478,6 +615,7 @@ class Meeting extends React.Component {
         if (this.state.textRecord.length > 0) {
             this.state.textRecord.map(obj => {
                 if (obj.userID == this.localUserID) {
+                    console.log(obj);
                     chat.push(
                         <div id="me_sent">
                             <div className="arrow_box4">
@@ -487,13 +625,12 @@ class Meeting extends React.Component {
                         </div>
                     );
                 } else {
+                    console.log(obj);
                     chat.push(
                         <div id="number_sent">
-                            <div id="number-userid">{obj.UserID}</div>
+                            <div id="number-userid">{obj.userID}</div>
                             <div className="arrow_box3">
-                                <div id="number-text">
-                                    {obj.Text}
-                                </div>
+                                <div id="number-text">{obj.text}</div>
                             </div>
                             <div id="number-sendtime">{obj.sendTime}</div>
                         </div>
@@ -519,9 +656,7 @@ class Meeting extends React.Component {
                             <div id="button" />
                             <div id="meet_name">WeMeet開會群組</div>
                         </div>
-                        <div id="chatbox">
-                            {chat}
-                        </div>
+                        <div id="chatbox">{chat}</div>
 
                         <div id="yourvoice">
                             <img
@@ -554,7 +689,6 @@ class Meeting extends React.Component {
                                 送出
                             </button>
                         </div>
-
                     </div>
                     <div id="feature">
                         <div className="left">
@@ -574,7 +708,9 @@ class Meeting extends React.Component {
                                         ? "video-off"
                                         : "video-on"
                                 }
-                                onClick={()=>{this.Chat.toggleUserMedia()}}
+                                onClick={() => {
+                                    this.Chat.toggleUserMedia();
+                                }}
                             >
                                 {this.state.isStreaming ? "停止視訊" : "開起視訊"}
                             </button>
@@ -618,13 +754,10 @@ class Meeting extends React.Component {
                                 {this.state.isBrainstormingOpen ? "關閉" : "腦力激盪"}
                             </button>
 
-                            <div id="systemTime">
-                                系統時間：{this.state.time}
-                            </div>
+                            <div id="systemTime">系統時間：{this.state.time}</div>
                         </div>
 
                         <div className="right">
-
                             <button id="end" onClick={this.onClick_backtoindex}>
                                 結束會議
                             </button>
@@ -632,7 +765,6 @@ class Meeting extends React.Component {
                     </div>
 
                     <div id="meet_main" ref="meet_main">
-
                         <div
                             id={
                                 this.state.isRecognizing
@@ -682,7 +814,7 @@ class Meeting extends React.Component {
                                 muted="muted"
                                 src={
                                     this.state.videoIsReady &&
-                                        this.state.isStreaming
+                                    this.state.isStreaming
                                         ? this.state.localVideoURL
                                         : "沒在播放欸或是沒加到影像"
                                 }
@@ -700,9 +832,7 @@ class Meeting extends React.Component {
                         >
                             <div id="now_agenda">議程清單</div>
                             <div id="agenda_content">
-                                <ol>
-                                    {agenda}
-                                </ol>
+                                <ol>{agenda}</ol>
                             </div>
                             <input
                                 type="text"
@@ -738,8 +868,8 @@ class Meeting extends React.Component {
                                 <img
                                     src={
                                         "../img/" +
-                                            this.state.hatColor[0] +
-                                            ".png"
+                                        this.state.hatColor[0] +
+                                        ".png"
                                     }
                                 />
                             </div>
@@ -764,8 +894,8 @@ class Meeting extends React.Component {
 
 const mapStateToProps = state => {
     return {
-        remoteStreamURL: state.connection.remoteStreamURL,
-        candidateQueue: state.connection.candidateQueue
+        remoteStreamURL: state.connection.remoteStreamURL
+        //candidateQueue: state.connection.candidateQueue
     };
 };
 
